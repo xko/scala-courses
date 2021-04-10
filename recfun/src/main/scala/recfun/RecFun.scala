@@ -42,5 +42,16 @@ object RecFun extends RecFunInterface {
   /**
    * Exercise 3
    */
-  def countChange(money: Int, coins: List[Int]): Int = ???
+  def countChange(money: Int, coins: List[Int]): Int = {
+    def cc(money: Int, coinsDec: List[Int]): Int = {
+      coinsDec match {
+        case Nil => 0
+        case smallest :: Nil => if (money % smallest == 0) 1 else 0
+        case biggest :: rest if biggest > money => cc(money, rest)
+        case biggest :: rest =>
+          cc(money - biggest, coinsDec) + cc(money, rest)
+      }
+    }
+    cc(money, coins.sorted(Ordering[Int].reverse))
+  }
 }

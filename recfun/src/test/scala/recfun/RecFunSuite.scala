@@ -25,6 +25,14 @@ class RecFunSuite {
   @Test def `countChange: example given in instructions`: Unit =
     assertEquals(3, countChange(4,List(1,2)))
 
+  @Test def `16`: Unit = {
+    assertEquals(9, countChange(16,List(8,4,2)))
+  }
+
+  @Test def `17`: Unit = {
+    assertEquals(0, countChange(17,List(8,4,2)))
+  }
+
   @Test def `countChange: sorted CHF`: Unit =
     assertEquals(1022, countChange(300,List(5,10,20,50,100,200,500)))
 
