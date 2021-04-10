@@ -24,8 +24,8 @@ import org.junit.Assert.assertEquals
     assert(1 + 1 == 2)
   }
 
-  @Test def `one plus one is three (0pts)?`: Unit = {
-    assert(1 + 1 == 3) // This assertion fails! Go ahead and fix it.
+  @Test def `one plus one is not three (0pts)?`: Unit = {
+    assert(1 +1 != 3) // This assertion fails! Go ahead and fix it.
   }
 
   /**
@@ -50,7 +50,7 @@ import org.junit.Assert.assertEquals
    * when writing tests.
    */
   @Test def `details why one plus one is not three (0pts)`: Unit = {
-    Assert.assertEquals(3, 1 + 1) // Fix me, please!
+    Assert.assertNotEquals(3, 1 + 1) // Fix me, please!
   }
 
   /**
@@ -100,6 +100,17 @@ import org.junit.Assert.assertEquals
   @Test def `max of a few numbers (10pts)`: Unit = {
     assert(max(List(3, 7, 2)) == 7)
   }
+
+  @Test def `max of empty`: Unit = {
+    try {
+      max(Nil)
+      Assert.fail("No exception has been thrown")
+    } catch {
+      case e: UnsupportedOperationException => ()
+    }
+  }
+
+
 
 
 
