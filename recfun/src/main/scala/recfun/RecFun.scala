@@ -1,5 +1,7 @@
 package recfun
 
+import scala.annotation.tailrec
+
 object RecFun extends RecFunInterface {
 
   def main(args: Array[String]): Unit = {
@@ -22,7 +24,20 @@ object RecFun extends RecFunInterface {
   /**
    * Exercise 2
    */
-  def balance(chars: List[Char]): Boolean = ???
+  def balance(chars: List[Char]): Boolean = {
+    @tailrec
+    def bal(b: Int, chars: List[Char]):Int = {
+      if(b>=0) {
+        chars match {
+          case '(' :: tail => bal(b + 1, tail)
+          case ')' :: tail => bal(b - 1, tail)
+          case _ :: tail => bal(b, tail)
+          case Nil => b
+        }
+      } else b
+    }
+    bal(0, chars) == 0
+  }
 
   /**
    * Exercise 3
