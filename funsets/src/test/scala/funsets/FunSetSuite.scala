@@ -47,7 +47,7 @@ class FunSetSuite {
    * Once you finish your implementation of "singletonSet", remvoe the
    * @Ignore annotation.
    */
-  @Ignore("not ready yet") @Test def `singleton set one contains one`: Unit = {
+  @Test def `singleton set one contains one`: Unit = {
 
     /**
      * We create a new instance of the "TestSets" trait, this gives us access
@@ -68,6 +68,16 @@ class FunSetSuite {
       assert(contains(s, 1), "Union 1")
       assert(contains(s, 2), "Union 2")
       assert(!contains(s, 3), "Union 3")
+    }
+  }
+
+  @Test def `map maps`: Unit = {
+    new TestSets {
+      def sq(x:Int) = x*x
+      val s = union(map(s2,sq),map(s3,sq))
+      assert(contains(s,4))
+      assert(contains(s,9))
+      assert(!contains(s,2))
     }
   }
 
