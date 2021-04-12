@@ -1,5 +1,7 @@
 package patmat
 
+import java.util.NoSuchElementException
+
 /**
  * A huffman code is represented by a binary tree.
  *
@@ -10,7 +12,9 @@ package patmat
  * present in the leaves below it. The weight of a `Fork` node is the sum of the weights of these
  * leaves.
  */
-abstract class CodeTree
+abstract class CodeTree {
+  def weight: Int
+}
 case class Fork(left: CodeTree, right: CodeTree, chars: List[Char], weight: Int) extends CodeTree
 case class Leaf(char: Char, weight: Int) extends CodeTree
 
@@ -21,9 +25,12 @@ case class Leaf(char: Char, weight: Int) extends CodeTree
 trait Huffman extends HuffmanInterface {
 
   // Part 1: Basics
-  def weight(tree: CodeTree): Int = ??? // tree match ...
+  def weight(tree: CodeTree): Int = tree.weight
 
-  def chars(tree: CodeTree): List[Char] = ??? // tree match ...
+  def chars(tree: CodeTree): List[Char] =  tree match {
+    case Leaf(char, _) => List(char)
+    case Fork(_,_,chars,_ ) => chars
+  }
 
   def makeCodeTree(left: CodeTree, right: CodeTree) =
     Fork(left, right, chars(left) ::: chars(right), weight(left) + weight(right))
@@ -64,7 +71,30 @@ trait Huffman extends HuffmanInterface {
    *       println("integer is  : "+ theInt)
    *   }
    */
-  def times(chars: List[Char]): List[(Char, Int)] = ???
+  def times(chars: List[Char]): List[(Char, Int)] = {
+    def countChar(C: Char, acc: (Int,List[Char])): (Int, List[Char]) = acc match {
+      case (n, Nil) => (n, Nil)
+      case (n, C :: tail) => countChar(C, (n+1, tail))
+      case (n, c :: tail) => countChar(C, (n,tail) ) match {
+        case (n,uncounted) => (n, c::uncounted)
+      }
+    }
+    def countChars(chars: List[Char], acc: List[(Char, Int)]): List[(Char, Int)] = chars match {
+      case Nil => acc
+      case c :: tail => countChar(c, (1, tail)) match {
+        case (n, uncounted) =>
+          countChars(uncounted, (c,n) :: acc )
+      }
+    }
+    countChars(chars, Nil)
+  }
+
+  def insert[T <: CodeTree](l: T, ll: List[T]): List[T] = ll match {
+    case h :: t if l.weight < h.weight => l :: h :: t
+    case h :: t => h :: insert(l, t)
+    case Nil => List(l)
+  }
+
 
   /**
    * Returns a list of `Leaf` nodes for a given frequency table `freqs`.
@@ -73,12 +103,18 @@ trait Huffman extends HuffmanInterface {
    * head of the list should have the smallest weight), where the weight
    * of a leaf is the frequency of the character.
    */
-  def makeOrderedLeafList(freqs: List[(Char, Int)]): List[Leaf] = ???
+  def makeOrderedLeafList(freqs: List[(Char, Int)]): List[Leaf] = {
+    def sort(freqs: List[(Char,Int)], sorted: List[Leaf]): List[Leaf] = freqs match {
+      case h :: t => sort(t, insert(Leaf(h._1, h._2), sorted))
+      case Nil => sorted
+    }
+    sort(freqs, Nil)
+  }
 
   /**
    * Checks whether the list `trees` contains only one single code tree.
    */
-  def singleton(trees: List[CodeTree]): Boolean = ???
+  def singleton(trees: List[CodeTree]): Boolean = trees.size < 2
 
   /**
    * The parameter `trees` of this function is a list of code trees ordered
@@ -92,7 +128,11 @@ trait Huffman extends HuffmanInterface {
    * If `trees` is a list of less than two elements, that list should be returned
    * unchanged.
    */
-  def combine(trees: List[CodeTree]): List[CodeTree] = ???
+  def combine(trees: List[CodeTree]): List[CodeTree] = trees match {
+    case Nil => trees
+    case _ :: Nil => trees
+    case l :: r :: tail => insert(makeCodeTree(l,r),tail)
+  }
 
   /**
    * This function will be called in the following way:
@@ -105,7 +145,9 @@ trait Huffman extends HuffmanInterface {
    * In such an invocation, `until` should call the two functions until the list of
    * code trees contains only one single tree, and then return that singleton list.
    */
-  def until(done: List[CodeTree] => Boolean, merge: List[CodeTree] => List[CodeTree])(trees: List[CodeTree]): List[CodeTree] = ???
+  def until(done: List[CodeTree] => Boolean, merge: List[CodeTree] => List[CodeTree])(trees: List[CodeTree]): List[CodeTree] =
+    if(done(trees)) trees
+    else until(done,merge)(merge(trees))
 
   /**
    * This function creates a code tree which is optimal to encode the text `chars`.
@@ -113,7 +155,11 @@ trait Huffman extends HuffmanInterface {
    * The parameter `chars` is an arbitrary text. This function extracts the character
    * frequencies from that text and creates a code tree based on them.
    */
-  def createCodeTree(chars: List[Char]): CodeTree = ???
+  def createCodeTree(chars: List[Char]): CodeTree = until(singleton,combine)( makeOrderedLeafList(times(chars)) ) match {
+    case Nil => throw new NoSuchElementException(s"tree is empty: $chars ")
+    case t :: Nil => t
+    case _ => throw new Error("failed to build single tree")
+  }
 
 
   // Part 3: Decoding
@@ -124,7 +170,16 @@ trait Huffman extends HuffmanInterface {
    * This function decodes the bit sequence `bits` using the code tree `tree` and returns
    * the resulting list of characters.
    */
-  def decode(tree: CodeTree, bits: List[Bit]): List[Char] = ???
+  def decode(tree: CodeTree, bits: List[Bit]): List[Char] = {
+    def decodeRec(subTree: CodeTree, bits: List[Bit], acc: List[Char]): List[Char] = subTree match {
+      case Leaf(char, _) => decodeRec(tree, bits, acc :+ char)
+      case Fork(l,r, _, _) => bits match {
+        case bit :: moreBits => if(bit == 0) decodeRec(l,moreBits,acc) else decodeRec(r, moreBits, acc)
+        case Nil => acc
+      }
+    }
+    decodeRec(tree, bits, Nil)
+  }
 
   /**
    * A Huffman coding tree for the French language.
@@ -142,7 +197,7 @@ trait Huffman extends HuffmanInterface {
   /**
    * Write a function that returns the decoded secret
    */
-  def decodedSecret: List[Char] = ???
+  def decodedSecret: List[Char] = decode(frenchCode, secret)
 
 
   // Part 4a: Encoding using Huffman tree
@@ -151,7 +206,18 @@ trait Huffman extends HuffmanInterface {
    * This function encodes `text` using the code tree `tree`
    * into a sequence of bits.
    */
-  def encode(tree: CodeTree)(text: List[Char]): List[Bit] = ???
+  def encode(tree: CodeTree)(text: List[Char]): List[Bit] = {
+    def encodeRec(subTree:CodeTree, text: List[Char], res: List[Bit]):List[Bit] = text match {
+      case char :: moreChars => subTree match {
+        case Leaf(_,_) => encodeRec(tree,moreChars,res)
+        case Fork(l,r,_,_) => if (chars(l).contains(char)) encodeRec(l,text,res :+ 0)
+                              else if (chars(r).contains(char)) encodeRec(r,text,res :+ 1)
+                              else throw new Error(s"no $char in the tree")
+      }
+      case Nil => res
+    }
+    encodeRec(tree,text,Nil)
+  }
 
   // Part 4b: Encoding using code table
 
