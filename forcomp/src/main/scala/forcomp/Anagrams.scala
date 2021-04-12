@@ -37,7 +37,8 @@ object Anagrams extends AnagramsInterface {
     w.toLowerCase.toList.groupBy(identity).view.mapValues(_.size).toList.sorted
 
   /** Converts a sentence into its character occurrence list. */
-  def sentenceOccurrences(s: Sentence): Occurrences = s.flatMap(wordOccurrences).sorted
+  def sentenceOccurrences(s: Sentence): Occurrences =
+    s.flatMap(wordOccurrences).groupMapReduce(_._1)(_._2)(_+_).toList.sorted
 
   /** The `dictionaryByOccurrences` is a `Map` from different occurrences to a sequence of all
    *  the words that have that occurrence count.
@@ -100,6 +101,7 @@ object Anagrams extends AnagramsInterface {
     case (x, Nil) => x
     case ((xc,xn)::xs, (yc,yn)::ys ) =>
       ( if(xc == yc) xc->(xn-yn) :: subtract(xs,ys) else xc->xn :: subtract(xs, y) )  filter (_._2 > 0)
+    case _ => ???
   }
 
   /** Returns a list of all anagram sentences of the given sentence.
@@ -142,7 +144,17 @@ object Anagrams extends AnagramsInterface {
    *
    *  Note: There is only one anagram of an empty sentence.
    */
-  def sentenceAnagrams(sentence: Sentence): List[Sentence] = ???
+  def sentenceAnagrams(sentence: Sentence): List[Sentence] = {
+    def anagrams(occurrences: Occurrences):List[Sentence] = occurrences match {
+      case Nil => List(Nil)
+      case occs => for {
+        wo <- combinations(occs)
+        w <- dictionaryByOccurrences.get(wo).toList.flatten
+        s <- anagrams(subtract(occs, wo))
+      } yield w :: s
+    }
+    anagrams(sentenceOccurrences(sentence))
+  }
 }
 
 object Dictionary {
