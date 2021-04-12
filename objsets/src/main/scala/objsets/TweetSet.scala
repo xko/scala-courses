@@ -41,12 +41,7 @@ abstract class TweetSet extends TweetSetInterface {
    * Question: Can we implment this method here, or should it remain abstract
    * and be implemented in the subclasses?
    */
-  def filter(p: Tweet => Boolean): TweetSet = ???
-
-  /**
-   * This is a helper method for `filter` that propagetes the accumulated tweets.
-   */
-  def filterAcc(p: Tweet => Boolean, acc: TweetSet): TweetSet
+  def filter(p: Tweet => Boolean): TweetSet
 
   /**
    * Returns a new `TweetSet` that is the union of `TweetSet`s `this` and `that`.
@@ -54,7 +49,7 @@ abstract class TweetSet extends TweetSetInterface {
    * Question: Should we implment this method here, or should it remain abstract
    * and be implemented in the subclasses?
    */
-  def union(that: TweetSet): TweetSet = ???
+  def union(that: TweetSet): TweetSet
 
   /**
    * Returns the tweet from this set which has the greatest retweet count.
@@ -65,7 +60,7 @@ abstract class TweetSet extends TweetSetInterface {
    * Question: Should we implment this method here, or should it remain abstract
    * and be implemented in the subclasses?
    */
-  def mostRetweeted: Tweet = ???
+  def mostRetweeted: Tweet = descendingByRetweet.head
 
   /**
    * Returns a list containing all tweets of this set, sorted by retweet count
@@ -76,7 +71,9 @@ abstract class TweetSet extends TweetSetInterface {
    * Question: Should we implment this method here, or should it remain abstract
    * and be implemented in the subclasses?
    */
-  def descendingByRetweet: TweetList = ???
+  def descendingByRetweet: TweetList = descendingByRetweetRec(Nil)
+
+  def descendingByRetweetRec(acc: TweetList): TweetList
 
   /**
    * The following methods are already implemented
@@ -107,7 +104,12 @@ abstract class TweetSet extends TweetSetInterface {
 }
 
 class Empty extends TweetSet {
-  def filterAcc(p: Tweet => Boolean, acc: TweetSet): TweetSet = ???
+
+  override def filter(p: Tweet => Boolean): TweetSet = new Empty
+
+  override def union(that: TweetSet): TweetSet = that
+
+  override def descendingByRetweetRec(acc: TweetList): TweetList = Nil
 
   /**
    * The following methods are already implemented
@@ -124,7 +126,19 @@ class Empty extends TweetSet {
 
 class NonEmpty(elem: Tweet, left: TweetSet, right: TweetSet) extends TweetSet {
 
-  def filterAcc(p: Tweet => Boolean, acc: TweetSet): TweetSet = ???
+  override def filter(p: Tweet => Boolean): TweetSet =
+    if(p(elem)) new NonEmpty(elem, left.filter(p), right.filter(p))
+    else left.filter(p) union right.filter(p)
+
+  override def union(that: TweetSet): TweetSet = right union left union that incl elem
+
+
+  override def descendingByRetweetRec(acc: TweetList): TweetList = {
+    def insert(acc:TweetList):TweetList =
+      if (acc.isEmpty || elem.retweets > acc.head.retweets) new Cons(elem, acc)
+      else new Cons(acc.head, insert(acc.tail))
+    insert(right.descendingByRetweetRec(left.descendingByRetweetRec(acc)))
+  }
 
 
   /**
