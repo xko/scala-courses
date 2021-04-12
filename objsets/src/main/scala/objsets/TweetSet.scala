@@ -41,7 +41,12 @@ abstract class TweetSet extends TweetSetInterface {
    * Question: Can we implment this method here, or should it remain abstract
    * and be implemented in the subclasses?
    */
-  def filter(p: Tweet => Boolean): TweetSet
+  def filter(p: Tweet => Boolean): TweetSet = filterAcc(p, new Empty)
+
+  /**
+   * This is a helper method for `filter` that propagetes the accumulated tweets.
+   */
+  def filterAcc(p: Tweet => Boolean, acc: TweetSet): TweetSet
 
   /**
    * Returns a new `TweetSet` that is the union of `TweetSet`s `this` and `that`.
@@ -105,7 +110,7 @@ abstract class TweetSet extends TweetSetInterface {
 
 class Empty extends TweetSet {
 
-  override def filter(p: Tweet => Boolean): TweetSet = new Empty
+  override def filterAcc(p: Tweet => Boolean, acc: TweetSet): TweetSet = acc
 
   override def union(that: TweetSet): TweetSet = that
 
@@ -126,11 +131,18 @@ class Empty extends TweetSet {
 
 class NonEmpty(elem: Tweet, left: TweetSet, right: TweetSet) extends TweetSet {
 
+  override def filterAcc(p: Tweet => Boolean, acc: TweetSet): TweetSet =
+    if(p(elem)) left.filterAcc(p, right.filterAcc(p,acc)).incl(elem)
+    else left.filterAcc(p, right.filterAcc(p,acc))
+
   override def filter(p: Tweet => Boolean): TweetSet =
     if(p(elem)) new NonEmpty(elem, left.filter(p), right.filter(p))
     else left.filter(p) union right.filter(p)
 
-  override def union(that: TweetSet): TweetSet = right union left union that incl elem
+  override def union(that: TweetSet): TweetSet =
+    new NonEmpty(elem,
+                 left union that.filter(_.text < elem.text),
+                 right union that.filter(_.text > elem.text) )
 
 
   override def descendingByRetweetRec(acc: TweetList): TweetList = {

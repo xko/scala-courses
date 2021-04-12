@@ -60,6 +60,10 @@ class TweetSetSuite {
       assert(trends.head.user == "a" || trends.head.user == "b")
     }
 
+  @Test def `filter big`: Unit = {
+    TweetReader.allTweets.filter(_.retweets == 205).mostRetweeted.retweets == 205
+  }
+
 
   @Rule def individualTestTimeout = new org.junit.rules.Timeout(10 * 1000)
 }
