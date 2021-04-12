@@ -57,6 +57,11 @@ class HuffmanSuite {
       assertEquals("ab".toList, decode(t1, encode(t1)("ab".toList)))
     }
 
+  @Test def `converts to table`: Unit =     new TestTrees {
+    assertEquals(List(('a',List(0)),('b',List(1))),convert(t1) )
+  }
+
+
 
   @Rule def individualTestTimeout = new org.junit.rules.Timeout(10 * 1000)
 }
