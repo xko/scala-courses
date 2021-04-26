@@ -14,7 +14,7 @@ trait GameDef {
    *  - The coordinates increase when moving down and right
    *
    * Illustration:
-   *
+   *{{{
    *     0 1 2 3   <- col axis
    *   0 o o o o
    *   1 o o o o
@@ -25,6 +25,7 @@ trait GameDef {
    *   |
    *
    *   row axis
+   *}}}
    */
   case class Pos(row: Int, col: Int) {
     /** The position obtained by changing the `row` coordinate by `d` */
