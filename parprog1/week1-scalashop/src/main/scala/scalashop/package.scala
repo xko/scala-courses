@@ -1,7 +1,8 @@
 import java.util.concurrent._
 import scala.util.DynamicVariable
-
 import org.scalameter._
+
+import java.lang.Math.{max, min}
 
 package object scalashop extends BoxBlurKernelInterface {
 
@@ -41,9 +42,15 @@ package object scalashop extends BoxBlurKernelInterface {
 
   /** Computes the blurred RGBA value of a single pixel of the input image. */
   def boxBlurKernel(src: Img, x: Int, y: Int, radius: Int): RGBA = {
+    val pixels = for {
+      x <- max(x - radius, 0) to min(x + radius, src.width-1)
+      y <- max(y - radius, 0) to min(y + radius, src.height-1)
+    } yield src(x,y)
 
-    // TODO implement using while loops
-    ???
+    def avg(ns: Seq[Int]) = (ns.foldLeft(0L)(_+_) / ns.size).toInt
+
+    rgba( avg(pixels.map(red)),  avg(pixels.map(green)),
+          avg(pixels.map(blue)), avg(pixels.map(alpha)) )
   }
 
   val forkJoinPool = new ForkJoinPool
