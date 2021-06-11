@@ -118,6 +118,15 @@ class ReductionsSuite {
     check(").", false)
   }
 
+  @Test def `parBalance with threshold 1`: Unit = {
+    def check(input: String, expected: Boolean) =
+      assert(parBalance(input.toArray, 1) == expected,
+             s"parbalance($input) should be $expected")
+
+    check("(())", true)
+    check(")()(", false)
+  }
+
 
   @Rule def individualTestTimeout = new org.junit.rules.Timeout(10 * 1000)
 }

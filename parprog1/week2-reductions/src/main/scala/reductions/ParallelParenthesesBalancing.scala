@@ -60,7 +60,6 @@ object ParallelParenthesesBalancing extends ParallelParenthesesBalancingInterfac
     @tailrec
     def traverse(idx: Int, until: Int, unclosed: Int, unopened: Int) : (Int, Int) = {
       if (idx == until) (unclosed, unopened) else chars(idx) match {
-        case '(' if unopened > 0 => traverse(idx + 1, until, unclosed, unopened - 1)
         case '(' => traverse(idx + 1, until, unclosed + 1, unopened)
         case ')' if unclosed > 0 => traverse(idx + 1, until, unclosed - 1, unopened)
         case ')' => traverse(idx + 1, until, unclosed, unopened + 1)
@@ -73,7 +72,8 @@ object ParallelParenthesesBalancing extends ParallelParenthesesBalancingInterfac
       else {
         val mid = from + (until - from) / 2
         val ((ucl, uol),(ucr, uor)) = parallel(reduce(from, mid), reduce(mid, until))
-        ((ucl - uor)+ucr,uol+(uor - ucl))
+        val closed = ucl.min(uor)
+        (ucl - closed + ucr,uol + uor - closed)
       }
     }
 
