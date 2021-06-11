@@ -51,9 +51,9 @@ object ParallelCountChange extends ParallelCountChangeInterface {
    *  coins for the specified amount of money.
    */
   def countChange(money: Int, coins: List[Int]): Int = coins match {
-    case Nil => 0
+    case _ if money == 0 => 1
     case _ if money < 0 => 0
-    case last :: Nil => if (money % last == 0) 1 else 0
+    case Nil => 0
     case coin :: rest => countChange(money - coin, coins) + countChange(money, rest)
   }
 
