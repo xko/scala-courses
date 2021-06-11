@@ -58,17 +58,18 @@ object ParallelParenthesesBalancing extends ParallelParenthesesBalancingInterfac
   def parBalance(chars: Array[Char], threshold: Int): Boolean = {
 
     @tailrec
-    def traverse(idx: Int, until: Int, unclosed: Int, unopened: Int) : (Int, Int) = chars(idx) match {
-      case _ if idx == until   => (unclosed, unopened)
-      case '(' if unopened > 0 => traverse(idx+1, until, unclosed, unopened-1)
-      case '('                 => traverse(idx+1, until, unclosed+1, unopened)
-      case ')' if unclosed >0  => traverse(idx+1, until, unclosed-1, unopened)
-      case ')'                 => traverse(idx+1, until, unclosed, unopened+1)
-      case _                   => traverse(idx+1, until, unclosed, unopened)
+    def traverse(idx: Int, until: Int, unclosed: Int, unopened: Int) : (Int, Int) = {
+      if (idx == until) (unclosed, unopened) else chars(idx) match {
+        case '(' if unopened > 0 => traverse(idx + 1, until, unclosed, unopened - 1)
+        case '(' => traverse(idx + 1, until, unclosed + 1, unopened)
+        case ')' if unclosed > 0 => traverse(idx + 1, until, unclosed - 1, unopened)
+        case ')' => traverse(idx + 1, until, unclosed, unopened + 1)
+        case _ => traverse(idx + 1, until, unclosed, unopened)
+      }
     }
 
     def reduce(from: Int, until: Int) : (Int, Int) = {
-      if(until - from < threshold) traverse(from, until, 0, 0)
+      if(until - from <= threshold) traverse(from, until, 0, 0)
       else {
         val mid = from + (until - from) / 2
         val ((ucl, uol),(ucr, uor)) = parallel(reduce(from, mid), reduce(mid, until))
