@@ -18,6 +18,12 @@ class ReductionsSuite {
     assertEquals(List(0f, 1f, 4f, 4f), output.toList)
   }
 
+  @Test def `parLineOfSight should correctly handle an array of size 4`: Unit = {
+    val output = new Array[Float](4)
+    parLineOfSight(Array[Float](0f, 1f, 8f, 9f), output, 1)
+    assertEquals(List(0f, 1f, 4f, 4f), output.toList)
+  }
+
 
 
 
