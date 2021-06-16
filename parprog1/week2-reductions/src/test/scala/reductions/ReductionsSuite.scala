@@ -1,27 +1,19 @@
 package reductions
 
-import java.util.concurrent._
-import scala.collection._
+import java.util.concurrent.*
+import scala.collection.*
 import java.util.concurrent.ForkJoinPool.ForkJoinWorkerThreadFactory
-import org.junit._
-import org.junit.Assert.assertEquals
 
-class ReductionsSuite {
+class ReductionsSuite extends munit.FunSuite:
   /*****************
    * LINE OF SIGHT *
    *****************/
 
-  import LineOfSight._
-  @Test def `lineOfSight should correctly handle an array of size 4`: Unit = {
+  import LineOfSight.*
+  test("lineOfSight should correctly handle an array of size 4") {
     val output = new Array[Float](4)
     lineOfSight(Array[Float](0f, 1f, 8f, 9f), output)
-    assertEquals(List(0f, 1f, 4f, 4f), output.toList)
-  }
-
-  @Test def `parLineOfSight should correctly handle an array of size 4`: Unit = {
-    val output = new Array[Float](4)
-    parLineOfSight(Array[Float](0f, 1f, 8f, 9f), output, 1)
-    assertEquals(List(0f, 1f, 4f, 4f), output.toList)
+    assertEquals(output.toList, List(0f, 1f, 4f, 4f))
   }
 
 
@@ -31,9 +23,9 @@ class ReductionsSuite {
    * PARALLEL COUNT CHANGE SUITE *
    *******************************/
 
-  import ParallelCountChange._
+  import ParallelCountChange.*
 
-  @Test def `countChange should return 0 for money < 0`: Unit = {
+  test("countChange should return 0 for money < 0") {
     def check(money: Int, coins: List[Int]) =
       assert(countChange(money, coins) == 0,
         s"countChang($money, _) should be 0")
@@ -44,7 +36,7 @@ class ReductionsSuite {
     check(-Int.MinValue, List(1, 2, 3))
   }
 
-  @Test def `countChange should return 1 when money == 0`: Unit = {
+  test("countChange should return 1 when money == 0") {
     def check(coins: List[Int]) =
       assert(countChange(0, coins) == 1,
         s"countChang(0, _) should be 1")
@@ -54,7 +46,7 @@ class ReductionsSuite {
     check(List.range(1, 100))
   }
 
-  @Test def `countChange should return 0 for money > 0 and coins = List()`: Unit = {
+  test("countChange should return 0 for money > 0 and coins = List()") {
     def check(money: Int) =
       assert(countChange(money, List()) == 0,
         s"countChang($money, List()) should be 0")
@@ -63,7 +55,7 @@ class ReductionsSuite {
     check(Int.MaxValue)
   }
 
-  @Test def `countChange should work when there is only one coin`: Unit = {
+  test("countChange should work when there is only one coin") {
     def check(money: Int, coins: List[Int], expected: Int) =
       assert(countChange(money, coins) == expected,
         s"countChange($money, $coins) should be $expected")
@@ -75,7 +67,7 @@ class ReductionsSuite {
     check(Int.MaxValue - 1, List(Int.MaxValue), 0)
   }
 
-  @Test def `countChange should work for multi-coins`: Unit = {
+  test("countChange should work for multi-coins") {
     def check(money: Int, coins: List[Int], expected: Int) =
       assert(countChange(money, coins) == expected,
         s"countChange($money, $coins) should be $expected")
@@ -89,9 +81,9 @@ class ReductionsSuite {
    * PARALLEL PARENTHESES BALANCING *
    **********************************/
 
-  import ParallelParenthesesBalancing._
+  import ParallelParenthesesBalancing.*
 
-  @Test def `balance should work for empty string`: Unit = {
+  test("balance should work for empty string") {
     def check(input: String, expected: Boolean) =
       assert(balance(input.toArray) == expected,
         s"balance($input) should be $expected")
@@ -99,7 +91,7 @@ class ReductionsSuite {
     check("", true)
   }
 
-  @Test def `balance should work for string of length 1`: Unit = {
+  test("balance should work for string of length 1") {
     def check(input: String, expected: Boolean) =
       assert(balance(input.toArray) == expected,
         s"balance($input) should be $expected")
@@ -109,7 +101,7 @@ class ReductionsSuite {
     check(".", true)
   }
 
-  @Test def `balance should work for string of length 2`: Unit = {
+  test("balance should work for string of length 2") {
     def check(input: String, expected: Boolean) =
       assert(balance(input.toArray) == expected,
         s"balance($input) should be $expected")
@@ -124,16 +116,7 @@ class ReductionsSuite {
     check(").", false)
   }
 
-  @Test def `parBalance with threshold 1`: Unit = {
-    def check(input: String, expected: Boolean) =
-      assert(parBalance(input.toArray, 1) == expected,
-             s"parbalance($input) should be $expected")
 
-    check("(())", true)
-    check(")()(", false)
-  }
-
-
-  @Rule def individualTestTimeout = new org.junit.rules.Timeout(10 * 1000)
-}
+  import scala.concurrent.duration.*
+  override val munitTimeout = 10.seconds
 

@@ -1,12 +1,12 @@
 course := "parprog1"
 assignment := "reductions"
 
-scalaVersion := "2.13.0"
+scalaVersion := "3.0.0"
 scalacOptions ++= Seq("-language:implicitConversions", "-deprecation")
 libraryDependencies ++= Seq(
-  "com.storm-enroute" %% "scalameter-core" % "0.19",
-  "org.scala-lang.modules" %% "scala-parallel-collections" % "0.2.0",
-  "com.novocode" % "junit-interface" % "0.11" % Test
+  ("com.storm-enroute" %% "scalameter-core" % "0.21").cross(CrossVersion.for3Use2_13),
+  "org.scala-lang.modules" %% "scala-parallel-collections" % "1.0.3",
+  "org.scalameta" %% "munit" % "0.7.26" % Test
 )
 
-testOptions in Test += Tests.Argument(TestFrameworks.JUnit, "-a", "-v", "-s")
+testFrameworks += new TestFramework("munit.Framework")
