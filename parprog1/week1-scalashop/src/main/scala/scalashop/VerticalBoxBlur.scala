@@ -1,22 +1,22 @@
 package scalashop
 
-import org.scalameter._
+import org.scalameter.*
 
-object VerticalBoxBlurRunner {
+object VerticalBoxBlurRunner:
 
   val standardConfig = config(
-    Key.exec.minWarmupRuns -> 5,
-    Key.exec.maxWarmupRuns -> 10,
-    Key.exec.benchRuns -> 10,
-    Key.verbose -> true
-  ) withWarmer(new Warmer.Default)
+    Key.exec.minWarmupRuns := 5,
+    Key.exec.maxWarmupRuns := 10,
+    Key.exec.benchRuns := 10,
+    Key.verbose := false
+  ) withWarmer(Warmer.Default())
 
-  def main(args: Array[String]): Unit = {
+  def main(args: Array[String]): Unit =
     val radius = 3
     val width = 1920
     val height = 1080
-    val src = new Img(width, height)
-    val dst = new Img(width, height)
+    val src = Img(width, height)
+    val dst = Img(width, height)
     val seqtime = standardConfig measure {
       VerticalBoxBlur.blur(src, dst, 0, width, radius)
     }
@@ -28,12 +28,10 @@ object VerticalBoxBlurRunner {
     }
     println(s"fork/join blur time: $partime")
     println(s"speedup: ${seqtime.value / partime.value}")
-  }
 
-}
 
 /** A simple, trivially parallelizable computation. */
-object VerticalBoxBlur extends VerticalBoxBlurInterface {
+object VerticalBoxBlur extends VerticalBoxBlurInterface:
 
   /** Blurs the columns of the source image `src` into the destination image
    *  `dst`, starting with `from` and ending with `end` (non-inclusive).
@@ -41,10 +39,9 @@ object VerticalBoxBlur extends VerticalBoxBlurInterface {
    *  Within each column, `blur` traverses the pixels by going from top to
    *  bottom.
    */
-  def blur(src: Img, dst: Img, from: Int, end: Int, radius: Int): Unit = {
-    for (x <- from until end; y <- 0 until src.height)
-      dst(x,y) = boxBlurKernel(src,x,y,radius)
-  }
+  def blur(src: Img, dst: Img, from: Int, end: Int, radius: Int): Unit =
+    // TODO implement this method using the `boxBlurKernel` method
+    ???
 
   /** Blurs the columns of the source image in parallel using `numTasks` tasks.
    *
@@ -52,13 +49,7 @@ object VerticalBoxBlur extends VerticalBoxBlurInterface {
    *  `numTasks` separate strips, where each strip is composed of some number of
    *  columns.
    */
-  def parBlur(src: Img, dst: Img, numTasks: Int, radius: Int): Unit = {
-    val w = Math.max((src.width + 1) / numTasks,1)
-    val tasks = for {
-      from <- 0 until src.width by w
-      to = Math.min(from+w,src.width)
-    } yield task( blur(src,dst,from,to,radius) )
-    tasks.foreach(_.join())
-  }
+  def parBlur(src: Img, dst: Img, numTasks: Int, radius: Int): Unit =
+    // TODO implement using the `task` construct and the `blur` method
+    ???
 
-}

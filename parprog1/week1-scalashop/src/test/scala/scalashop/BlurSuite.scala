@@ -1,11 +1,8 @@
 package scalashop
 
-import java.util.concurrent._
-import scala.collection._
-import org.junit._
-import org.junit.Assert.assertEquals
+import java.util.concurrent.*
+import scala.collection.*
 
-class BlurSuite {
-
-  @Rule def individualTestTimeout = new org.junit.rules.Timeout(10 * 1000)
-}
+class BlurSuite extends munit.FunSuite:
+  // Put tests here
+  ()

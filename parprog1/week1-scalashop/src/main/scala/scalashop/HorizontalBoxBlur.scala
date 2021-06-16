@@ -1,22 +1,22 @@
 package scalashop
 
-import org.scalameter._
+import org.scalameter.*
 
-object HorizontalBoxBlurRunner {
+object HorizontalBoxBlurRunner:
 
   val standardConfig = config(
-    Key.exec.minWarmupRuns -> 5,
-    Key.exec.maxWarmupRuns -> 10,
-    Key.exec.benchRuns -> 10,
-    Key.verbose -> true
-  ) withWarmer(new Warmer.Default)
+    Key.exec.minWarmupRuns := 5,
+    Key.exec.maxWarmupRuns := 10,
+    Key.exec.benchRuns := 10,
+    Key.verbose := false
+  ) withWarmer(Warmer.Default())
 
-  def main(args: Array[String]): Unit = {
+  def main(args: Array[String]): Unit =
     val radius = 3
     val width = 1920
     val height = 1080
-    val src = new Img(width, height)
-    val dst = new Img(width, height)
+    val src = Img(width, height)
+    val dst = Img(width, height)
     val seqtime = standardConfig measure {
       HorizontalBoxBlur.blur(src, dst, 0, height, radius)
     }
@@ -28,21 +28,19 @@ object HorizontalBoxBlurRunner {
     }
     println(s"fork/join blur time: $partime")
     println(s"speedup: ${seqtime.value / partime.value}")
-  }
-}
 
 /** A simple, trivially parallelizable computation. */
-object HorizontalBoxBlur extends HorizontalBoxBlurInterface {
+object HorizontalBoxBlur extends HorizontalBoxBlurInterface:
 
   /** Blurs the rows of the source image `src` into the destination image `dst`,
    *  starting with `from` and ending with `end` (non-inclusive).
    *
    *  Within each row, `blur` traverses the pixels by going from left to right.
    */
-  def blur(src: Img, dst: Img, from: Int, end: Int, radius: Int): Unit = {
-    for (y <- from until end; x <- 0 until src.width)
-      dst(x,y) = boxBlurKernel(src,x,y,radius)
-  }
+  def blur(src: Img, dst: Img, from: Int, end: Int, radius: Int): Unit =
+  // TODO implement this method using the `boxBlurKernel` method
+
+  ???
 
   /** Blurs the rows of the source image in parallel using `numTasks` tasks.
    *
@@ -50,13 +48,8 @@ object HorizontalBoxBlur extends HorizontalBoxBlurInterface {
    *  `numTasks` separate strips, where each strip is composed of some number of
    *  rows.
    */
-  def parBlur(src: Img, dst: Img, numTasks: Int, radius: Int): Unit = {
-    val h = Math.max((src.height + 1) / numTasks,1)
-    val tasks = for {
-      from <- 0 until src.height by h
-      to = Math.min(from+h,src.height)
-    } yield task(blur(src,dst,from,to,radius))
-    tasks.foreach(_.join())
-  }
+  def parBlur(src: Img, dst: Img, numTasks: Int, radius: Int): Unit =
+  // TODO implement using the `task` construct and the `blur` method
 
-}
+  ???
+
