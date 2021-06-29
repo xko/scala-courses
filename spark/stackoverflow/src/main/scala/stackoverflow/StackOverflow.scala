@@ -14,8 +14,8 @@ case class Posting(postingType: Int, id: Int, acceptedAnswer: Option[Int], paren
 /** The main class */
 object StackOverflow extends StackOverflow {
 
-  @transient lazy val conf: SparkConf = new SparkConf().setMaster("local").setAppName("StackOverflow")
-  @transient lazy val sc: SparkContext = new SparkContext(conf)
+  @transient lazy val conf: SparkConf = new SparkConf().setMaster("local[*]").setAppName("StackOverflow")
+  @transient lazy val sc: SparkContext = { val c = new SparkContext(conf); c.setLogLevel("error"); c }
 
   /** Main function */
   def main(args: Array[String]): Unit = {
@@ -23,9 +23,10 @@ object StackOverflow extends StackOverflow {
     val lines   = sc.textFile("src/main/resources/stackoverflow/stackoverflow.csv")
     val raw     = rawPostings(lines)
     val grouped = groupedPostings(raw)
+//    val scored = scoredPostings(grouped).sample(true, 0.1, 0)
     val scored  = scoredPostings(grouped)
     val vectors = vectorPostings(scored)
-//    assert(vectors.count() == 2121822, "Incorrect number of vectors: " + vectors.count())
+    assert(vectors.count() == 2121822, "Incorrect number of vectors: " + vectors.count())
 
     val means   = kmeans(sampleVectors(vectors), vectors, debug = true)
     val results = clusterResults(means, vectors)
@@ -77,7 +78,9 @@ class StackOverflow extends StackOverflowInterface with Serializable {
 
   /** Group the questions and answers together */
   def groupedPostings(postings: RDD[Posting]): RDD[(QID, Iterable[(Question, Answer)])] = {
-    ???
+    val qs = postings.filter(_.postingType == 1).map(q => (q.id,q) )
+    val as = postings.filter(a => a.postingType == 2 && a.parentId.isDefined).map(a => (a.parentId.get,a))
+    qs.join(as).groupByKey()
   }
 
 
@@ -95,8 +98,9 @@ class StackOverflow extends StackOverflowInterface with Serializable {
           }
       highScore
     }
-
-    ???
+    grouped.map { case (_ ,qas) =>
+      (qas.head._1, answerHighScore(qas.map(_._2).toArray))
+    }
   }
 
 
@@ -115,8 +119,9 @@ class StackOverflow extends StackOverflowInterface with Serializable {
         }
       }
     }
-
-    ???
+    scored.flatMap{ case (q, highScore) =>
+      firstLangInTag(q.tags,langs).map( i => (i * langSpread, highScore) )
+    }.cache()
   }
 
 
@@ -172,8 +177,15 @@ class StackOverflow extends StackOverflowInterface with Serializable {
   /** Main kmeans computation */
   @tailrec final def kmeans(means: Array[(Int, Int)], vectors: RDD[(Int, Int)], iter: Int = 1, debug: Boolean = false): Array[(Int, Int)] = {
     val newMeans = means.clone() // you need to compute newMeans
-
-    // TODO: Fill in the newMeans array
+    vectors.map { case (x,y) =>
+      findClosest((x,y), means) -> (x.toLong,y.toLong,1)
+    }.reduceByKey { (a,b) =>
+      (a._1+b._1, a._2 + b._2, a._3 + b._3)
+    }.mapValues { case (x,y,n) =>
+      ((x/n).toInt, (y/n).toInt)
+    }.collect().foreach { case (i,(x,y)) =>
+      newMeans(i)=(x,y)
+    }
     val distance = euclideanDistance(means, newMeans)
 
     if (debug) {
@@ -274,10 +286,16 @@ class StackOverflow extends StackOverflowInterface with Serializable {
     val closestGrouped = closest.groupByKey()
 
     val median = closestGrouped.mapValues { vs =>
-      val langLabel: String   = ??? // most common language in the cluster
-      val langPercent: Double = ??? // percent of the questions in the most common language
-      val clusterSize: Int    = ???
-      val medianScore: Int    = ???
+      val byLang = vs.groupBy(_._1)
+      val (topLang,topLangQs) = byLang.maxBy(_._2.size)
+      val langLabel: String   = langs(topLang/langSpread) // most common language in the cluster
+      val langPercent: Double = (100.0*topLangQs.size) / vs.size  // percent of the questions in the most common language
+      val clusterSize: Int    = vs.size
+      val medianScore: Int    = {
+        val sorted = vs.toArray.sortBy(_._2)
+        if(vs.size % 2 == 1) sorted(vs.size / 2)._2
+        else (sorted(vs.size/2 -1 )._2 + sorted(vs.size/2)._2)/2
+      }
 
       (langLabel, langPercent, clusterSize, medianScore)
     }
