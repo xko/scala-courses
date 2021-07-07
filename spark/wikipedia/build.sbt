@@ -14,22 +14,19 @@ dependencyOverrides ++= Seq(
 
 testOptions in Test += Tests.Argument(TestFrameworks.JUnit, "-a", "-v", "-s")
 
-import scala.language.postfixOps
-import scala.sys.process._
+import sbt.{Compile, Def, url}
+import sbt.io.Using
+import sbt.io.IO._
 
-val DataUrl = "https://moocs.scala-lang.org/~dockermoocs/bigdata/wikipedia.dat"
-val DataFile = file("src/main/resources/wikipedia/wikipedia.dat")
 
-lazy val downloadData = taskKey[Unit](s"Download additional data from $DataUrl")
-
-downloadData := {
-  if(DataFile.exists()) {
-    println("Data exists, no need to download.")
-  } else {
-    DataFile.getParentFile.mkdirs()
-    println(s"Downloading data from $DataUrl")
-    url(DataUrl) #> file(DataFile.toString) !
+Compile / resourceGenerators += Def.task {
+  val log = streams.value.log
+  val DataUrl = url("https://moocs.scala-lang.org/~dockermoocs/bigdata/wikipedia.dat")
+  val DataFile =  (Compile / resourceDirectory).value / "wikipedia" / "wikipedia.dat"
+  if(!DataFile.exists()){
+    log.info(s"Downloading $DataUrl")
+    Using.urlInputStream(DataUrl){ in => transfer( in, DataFile)}
+    log.info("...done")
   }
-}
-
-compile in Compile := (compile in Compile).dependsOn(downloadData).value
+  Seq(DataFile)
+}.taskValue
