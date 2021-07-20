@@ -54,7 +54,7 @@ object Extraction extends ExtractionInterface {
     spark.read.schema(enc.schema).csv(tempFile)
       .na.drop("all",Array("_1","_2"))
       .na.drop("any",Array("_3","_4","_5"))
-      .where( $"_4".between(1,12) && $"_3".between(1,31) )
+      .where( $"_3".between(1,12) && $"_4".between(1,31) )
       .map { r =>
         ( (r.getAs[Long](0), r.getAs[Long](1)),
           Date.valueOf(LocalDate.of(year, r.getAs[Int](2), r.getAs[Int](3))),
