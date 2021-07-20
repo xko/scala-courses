@@ -31,7 +31,9 @@ object Extraction extends ExtractionInterface {
     * @return A sequence containing triplets (date, location, temperature)
     */
   def locateTemperatures(year: Year, stationsFile: String, temperaturesFile: String): Iterable[(LocalDate, Location, Temperature)] = {
-    ???
+   locTemps(readStations(stationsFile),readTemps(year,temperaturesFile)).collect().map{
+     case (date, loc, temp) =>  (date.toLocalDate, loc, temp)
+   }
   }
 
   /**
@@ -48,6 +50,15 @@ object Extraction extends ExtractionInterface {
   type TempRec = (StationKey, Date, Temperature)
   type StationRec = (StationKey, Location)
 
+  private val DateCol = "date"
+  private val TempCol = "temp"
+  private val LocationCol = "loc"
+
+  def locTemps(stations: Dataset[StationRec], temps: Dataset[TempRec]): Dataset[(Date, Location, Temperature)] = {
+    val t = temps.withColumnRenamed(temps.columns(1), DateCol).withColumnRenamed(temps.columns(2), TempCol)
+    val s = stations.withColumnRenamed(stations.columns(1), LocationCol)
+    t.join(s, "_1").select(DateCol, LocationCol, TempCol).as[(Date, Location, Temperature)]
+  }
 
   def readTemps(year: Year, tempFile: String): Dataset[TempRec] = {
     val enc = Encoders.product[(Option[STN], Option[WBAN], Int, Int, Double)]

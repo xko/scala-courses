@@ -35,4 +35,15 @@ trait ExtractionTest extends MilestoneSuite with Matchers {
     d.show()
   }
 
+  @Test def locates_temperatures(): Unit = milestoneTest {
+    val d = locTemps(readStations("src/test/resources/stations.csv"), readTemps(2048, "src/test/resources/temps.csv"))
+    d.printSchema()
+    d.show()
+    d.collect() should equal ( Array(
+      (Date.valueOf(LocalDate.of(2048,12,21)),Location(69.293,14.144),37.05555555555556),
+      (Date.valueOf(LocalDate.of(2048,1,1)), Location(69.293,16.144),-4.888888888888889)
+    ))
+
+  }
+
 }
