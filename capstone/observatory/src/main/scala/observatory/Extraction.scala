@@ -2,6 +2,7 @@ package observatory
 
 import org.apache.spark.sql._
 import org.apache.spark.sql.types._
+import org.apache.spark.sql.functions._
 
 import java.sql.Date
 import java.time.LocalDate
@@ -46,46 +47,45 @@ object Extraction extends ExtractionInterface {
 
   type STN = Long
   type WBAN = Long
-  type StationKey = (STN,WBAN)
-  type TempRec = (StationKey, Date, Temperature)
-  type StationRec = (StationKey, Location)
+  type TempRec = (STN, WBAN, Date, Temperature)
+  type StationRec = (STN, WBAN, Location)
 
   private val DateCol = "date"
   private val TempCol = "temp"
   private val LocationCol = "loc"
+  private val StationKeyCol = "sttn"
 
   def locTemps(stations: Dataset[StationRec], temps: Dataset[TempRec]): Dataset[(Date, Location, Temperature)] = {
-    val t = temps.withColumnRenamed(temps.columns(1), DateCol).withColumnRenamed(temps.columns(2), TempCol)
-    val s = stations.withColumnRenamed(stations.columns(1), LocationCol)
-    t.join(s, "_1").select(DateCol, LocationCol, TempCol).as[(Date, Location, Temperature)]
+    val t = temps.withColumnRenamed(temps.columns(2), DateCol).withColumnRenamed(temps.columns(3), TempCol)
+    val s = stations.withColumnRenamed(stations.columns(2), LocationCol)
+    t.join(s,Seq(t.columns(0),t.columns(1)) ).select(DateCol, LocationCol, TempCol).as[(Date, Location, Temperature)]
   }
 
   def readTemps(year: Year, tempFile: String): Dataset[TempRec] = {
-    val enc = Encoders.product[(Option[STN], Option[WBAN], Int, Int, Double)]
-    spark.read.schema(enc.schema).csv(tempFile)
-      .na.drop("all",Array("_1","_2"))
-      .na.drop("any",Array("_3","_4","_5"))
-      .where( $"_3".between(1,12) && $"_4".between(1,31) )
-      .map { r =>
-        ( (r.getAs[Long](0), r.getAs[Long](1)),
-          Date.valueOf(LocalDate.of(year, r.getAs[Int](2), r.getAs[Int](3))),
-          (5 * (r.getAs[Double](4) - 32)) / 9
-        )
-      }
+    val tod = udf((year:Int, month:Int, day:Int) => Date.valueOf(LocalDate.of(year,month,day)))
+    spark.read.schema("stn LONG, wban LONG, month INT, day INT, temp DOUBLE").csv(tempFile)
+      .na.drop("all",Array("stn","wban"))
+      .na.fill(0,Array("stn","wban"))
+      .na.drop("any",Array("month","day","temp"))
+      .where( $"month".between(1,12) && $"day".between(1,31) )
+      .select(
+        $"stn".as[STN],$"wban".as[WBAN],
+        tod(lit(year),$"month",$"day").as[Date],
+        ( (lit(5) * ($"temp" - lit(32))) / lit(9) ).as[Double]
+      )
   }
 
 
   def readStations(stationsFile: String): Dataset[StationRec] = {
-    val enc = Encoders.product[(Option[STN], Option[WBAN], Double, Double)]
-    spark.read.schema(enc.schema).csv(stationsFile)
-      .na.drop("all",Array("_1","_2"))
-      .na.drop("any",Array("_3","_4"))
-      .where($"_3"=!=0.0 || $"_4"=!=0.0)
-      .map { r =>
-         ( (r.getAs[Long](0), r.getAs[Long](1)),
-           Location(r.getAs[Double](2), r.getAs[Double](3))
-         )
-      }.dropDuplicates("_1")
+    spark.read.schema("stn LONG, wban LONG, lat DOUBLE, lon DOUBLE").csv(stationsFile)
+      .na.drop("all",Array("stn","wban"))
+      .na.fill(0,Array("stn","wban"))
+      .na.drop("any",Array("lat","lon"))
+      .where($"lat"=!=0.0 || $"lon"=!=0.0)
+      .select(
+        $"stn".as[STN],$"wban".as[WBAN],
+        struct($"lat", $"lon" ).as[Location]
+       ).dropDuplicates(Seq("stn","wban"))
   }
 
 }
