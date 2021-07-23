@@ -1,5 +1,6 @@
 package observatory
 
+import org.apache.spark.LocalDateUDT
 import org.apache.spark.sql._
 import org.apache.spark.sql.types._
 import org.apache.spark.sql.functions._
@@ -24,6 +25,9 @@ object Extraction extends ExtractionInterface {
 
   import spark.implicits._
 
+  LocalDateUDT.register()
+  import LocalDateUDT.encoder
+
 
   /**
     * @param year             Year number
@@ -32,9 +36,7 @@ object Extraction extends ExtractionInterface {
     * @return A sequence containing triplets (date, location, temperature)
     */
   def locateTemperatures(year: Year, stationsFile: String, temperaturesFile: String): Iterable[(LocalDate, Location, Temperature)] = {
-   locTemps(readStations(stationsFile),readTemps(year,temperaturesFile)).collect().map{
-     case (date, loc, temp) =>  (date.toLocalDate, loc, temp)
-   }
+   locTemps(year, readStations(stationsFile),readTemps(temperaturesFile)).collect()
   }
 
   /**
@@ -45,47 +47,35 @@ object Extraction extends ExtractionInterface {
     ???
   }
 
-  type STN = Long
-  type WBAN = Long
-  type TempRec = (STN, WBAN, Date, Temperature)
-  type StationRec = (STN, WBAN, Location)
+  case class RawTempRec(stn: Long, wban: Long, month: Int, day: Int, temp: Double)
+  case class RawStationRec(stn: Long, wban: Long, lat: Double, lon: Double)
 
-  private val DateCol = "date"
-  private val TempCol = "temp"
-  private val LocationCol = "loc"
-  private val StationKeyCol = "sttn"
-
-  def locTemps(stations: Dataset[StationRec], temps: Dataset[TempRec]): Dataset[(Date, Location, Temperature)] = {
-    val t = temps.withColumnRenamed(temps.columns(2), DateCol).withColumnRenamed(temps.columns(3), TempCol)
-    val s = stations.withColumnRenamed(stations.columns(2), LocationCol)
-    t.join(s,Seq(t.columns(0),t.columns(1)) ).select(DateCol, LocationCol, TempCol).as[(Date, Location, Temperature)]
+  def locTemps(year: Year, s: Dataset[RawStationRec], t: Dataset[RawTempRec]): Dataset[(LocalDate, Location, Temperature)] = {
+    val todate = udf( (month: Int, day: Int) => LocalDate.of(year, month, day) )
+    t.joinWith(s, t("stn") === s("stn") && t("wban") === s("wban")).select(
+      todate($"_1.month",$"_1.day").as("date").as[LocalDate],
+      struct($"_2.lat", $"_2.lon" ).as("loc").as[Location],
+      $"_1.temp".as("temp").as[Temperature]
+    )
   }
 
-  def readTemps(year: Year, tempFile: String): Dataset[TempRec] = {
-    val tod = udf((year:Int, month:Int, day:Int) => Date.valueOf(LocalDate.of(year,month,day)))
-    spark.read.schema("stn LONG, wban LONG, month INT, day INT, temp DOUBLE").csv(tempFile)
-      .na.drop("all",Array("stn","wban"))
-      .na.fill(0,Array("stn","wban"))
-      .na.drop("any",Array("month","day","temp"))
-      .where( $"month".between(1,12) && $"day".between(1,31) )
-      .select(
-        $"stn".as[STN],$"wban".as[WBAN],
-        tod(lit(year),$"month",$"day").as[Date],
-        ( (lit(5) * ($"temp" - lit(32))) / lit(9) ).as[Double]
-      )
+  def readTemps(tempFile: String): Dataset[RawTempRec] = {
+    spark.read.schema(Encoders.product[RawTempRec].schema).csv(tempFile)
+      .na.drop("all", Array("stn", "wban"))
+      .na.fill(0, Array("stn", "wban"))
+      .na.drop("any", Array("month", "day", "temp"))
+      .where($"month".between(1, 12) && $"day".between(1, 31))
+      .withColumn("temp", (lit(5) * ($"temp" - lit(32))) / lit(9) )
+      .as[RawTempRec]
   }
 
-
-  def readStations(stationsFile: String): Dataset[StationRec] = {
-    spark.read.schema("stn LONG, wban LONG, lat DOUBLE, lon DOUBLE").csv(stationsFile)
-      .na.drop("all",Array("stn","wban"))
-      .na.fill(0,Array("stn","wban"))
-      .na.drop("any",Array("lat","lon"))
-      .where($"lat"=!=0.0 || $"lon"=!=0.0)
-      .select(
-        $"stn".as[STN],$"wban".as[WBAN],
-        struct($"lat", $"lon" ).as[Location]
-       ).dropDuplicates(Seq("stn","wban"))
+  def readStations(stationsFile: String): Dataset[RawStationRec] = {
+    spark.read.schema(Encoders.product[RawStationRec].schema).csv(stationsFile)
+      .na.drop("all", Array(s"stn", "wban"))
+      .na.fill(0, Array("stn", "wban"))
+      .na.drop("any", Array("lat", "lon"))
+      .where($"lat" =!= 0.0 || $"lon" =!= 0.0)
+      .dropDuplicates(Seq("stn", "wban")).as[RawStationRec]
   }
 
 }
