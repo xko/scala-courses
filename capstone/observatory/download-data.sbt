@@ -18,5 +18,8 @@ downloadData := {
 
 Compile / compile := (Compile / compile).dependsOn(downloadData).value
 
-Compile / unmanagedResources / excludeFilter ~= { _ || "*.csv" }
+Compile / unmanagedResources / excludeFilter ~= ( _ ||
+  ( new SimpleFileFilter(_.toPath.getParent.endsWith("main/resources"))
+    && "*.csv" )
+)
 

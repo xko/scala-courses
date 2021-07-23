@@ -5,6 +5,7 @@ import org.apache.spark.sql._
 import org.apache.spark.sql.functions._
 
 import java.time.LocalDate
+import scala.io.Source
 
 /**
   * 1st milestone: data extraction
@@ -34,7 +35,7 @@ object Extraction extends ExtractionInterface {
     * @return A sequence containing triplets (date, location, temperature)
     */
   def locateTemperatures(year: Year, stationsFile: String, temperaturesFile: String): Iterable[(LocalDate, Location, Temperature)] = {
-   locTemps(year, readStations(stationsFile),readTemps(temperaturesFile)).collect()
+   locTemps(year, readStations(readResource(stationsFile)), readTemps(readResource(temperaturesFile))).collect()
   }
 
   /**
@@ -63,8 +64,12 @@ object Extraction extends ExtractionInterface {
     )
   }
 
-  def readTemps(tempFile: String): Dataset[RawTempRec] = {
-    spark.read.schema(Encoders.product[RawTempRec].schema).csv(tempFile)
+  def readTemps(file: String): Dataset[RawTempRec] =
+    readTemps(spark.read.text(file).as[String])
+
+  def readTemps(lines: Dataset[String]): Dataset[RawTempRec] = {
+    val s = Encoders.product[RawTempRec].schema
+    spark.read.schema( s.copy(s.fields.map(_.copy(nullable = true))) ).csv(lines)
       .na.drop("all", Array("stn", "wban"))
       .na.fill(0, Array("stn", "wban"))
       .na.drop("any", Array("month", "day", "temp"))
@@ -73,13 +78,24 @@ object Extraction extends ExtractionInterface {
       .as[RawTempRec]
   }
 
-  def readStations(stationsFile: String): Dataset[RawStationRec] = {
-    spark.read.schema(Encoders.product[RawStationRec].schema).csv(stationsFile)
+  def readStations(file: String): Dataset[RawStationRec] =
+    readStations(spark.read.text(file).as[String])
+
+
+  def readStations(lines: Dataset[String]): Dataset[RawStationRec] = {
+    val s = Encoders.product[RawStationRec].schema
+    spark.read.schema( s.copy(s.fields.map(_.copy(nullable = true))) ).csv(lines)
       .na.drop("all", Array(s"stn", "wban"))
       .na.fill(0, Array("stn", "wban"))
       .na.drop("any", Array("lat", "lon"))
       .where($"lat" =!= 0.0 || $"lon" =!= 0.0)
       .dropDuplicates(Seq("stn", "wban")).as[RawStationRec]
+  }
+
+  def readResource(resource: String): Dataset[String] = {
+    val stream = Source.getClass.getResourceAsStream(resource)
+    try spark.sparkContext.makeRDD(Source.fromInputStream(stream).getLines().toList).toDS
+    finally if(stream != null) stream.close()
   }
 
 }
