@@ -2,10 +2,8 @@ package observatory
 
 import org.apache.spark.LocalDateUDT
 import org.apache.spark.sql._
-import org.apache.spark.sql.types._
 import org.apache.spark.sql.functions._
 
-import java.sql.Date
 import java.time.LocalDate
 
 /**
@@ -44,7 +42,13 @@ object Extraction extends ExtractionInterface {
     * @return A sequence containing, for each location, the average temperature over the year.
     */
   def locationYearlyAverageRecords(records: Iterable[(LocalDate, Location, Temperature)]): Iterable[(Location, Temperature)] = {
-    ???
+    avgTemps(records.toSeq.toDS()).collect()
+  }
+
+  def avgTemps(t: Dataset[(LocalDate, Location, Temperature)]): Dataset[(Location, Temperature)] = {
+    t.groupBy($"_2").agg(avg("_3"))
+      .withColumnRenamed("_2","_1").withColumnRenamed("avg(_3)","_2")
+      .as[(Location,Temperature)]
   }
 
   case class RawTempRec(stn: Long, wban: Long, month: Int, day: Int, temp: Double)
@@ -53,9 +57,9 @@ object Extraction extends ExtractionInterface {
   def locTemps(year: Year, s: Dataset[RawStationRec], t: Dataset[RawTempRec]): Dataset[(LocalDate, Location, Temperature)] = {
     val todate = udf( (month: Int, day: Int) => LocalDate.of(year, month, day) )
     t.joinWith(s, t("stn") === s("stn") && t("wban") === s("wban")).select(
-      todate($"_1.month",$"_1.day").as("date").as[LocalDate],
-      struct($"_2.lat", $"_2.lon" ).as("loc").as[Location],
-      $"_1.temp".as("temp").as[Temperature]
+      todate($"_1.month",$"_1.day").as("_1").as[LocalDate],
+      struct($"_2.lat", $"_2.lon" ).as("_2").as[Location],
+      $"_1.temp".as("_3").as[Temperature]
     )
   }
 
