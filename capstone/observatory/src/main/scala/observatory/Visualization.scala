@@ -1,7 +1,8 @@
 package observatory
 
 import com.sksamuel.scrimage.{Image, Pixel}
-import org.apache.spark.sql.{Dataset, Row, TypedColumn}
+import org.apache.spark.sql.expressions.UserDefinedFunction
+import org.apache.spark.sql.{Column, Dataset, Row}
 import org.apache.spark.sql.functions._
 
 
@@ -17,7 +18,7 @@ object Visualization extends VisualizationInterface {
     * @return The predicted temperature at `location`
     */
   def predictTemperature(temperatures: Iterable[(Location, Temperature)], location: Location): Temperature = {
-    sparkPredictTemperatures(temperatures.toSeq.toDS, Seq(location).toDS).head()._2
+    sparkPredictTemperature(temperatures.toSeq.toDS, location).head()
   }
 
   /**
@@ -38,23 +39,29 @@ object Visualization extends VisualizationInterface {
     ???
   }
 
+  def sparkPredictTemperature(refs: Dataset[(Location, Temperature)], target:Location): Dataset[Temperature] = {
+    val targetCol = struct(lit(target.lat).as("lat"), lit(target.lon).as("lon"))
+    refs.agg(tempIDW(targetCol, $"_1", $"_2")).as[Temperature]
+  }
 
+  def sparkPredictTemperatures(refs: Dataset[(Location, Temperature)], targets: Dataset[Location]): Dataset[(Location, Temperature)] =
+    targets.select(struct($"lat", $"lon").as("loc"))
+      .crossJoin(refs).groupBy($"loc")
+      .agg( tempIDW($"loc", $"_1", $"_2") ).as[(Location,Temperature)]
 
-  def sparkPredictTemperatures(refs: Dataset[(Location, Temperature)], targets: Dataset[Location]): Dataset[(Location, Temperature)] = {
-    val gcd = udf { (aLoc: Row, bLoc: Row) =>
-      dSigma(aLoc.getDouble(0),aLoc.getDouble(1),bLoc.getDouble(0),bLoc.getDouble(1)) * BigR
-    }
-    val j = targets.select(struct($"lat", $"lon").as("loc")).crossJoin(refs)
-    val (trgLoc, refLoc, temp) = (j("loc"), j("_1"), j("_2"))
-    val w = lit(1) / pow( gcd(trgLoc,refLoc), lit(2) )
-    val exact = first(when( gcd(refLoc,trgLoc) < 1 , temp))
+  def tempIDW(targetLoc: Column, refLoc: Column, temp: Column): Column = {
+    val w = lit(1) / pow(gcd(targetLoc, refLoc), lit(2))
+    val exact = first(when(gcd(refLoc, targetLoc) < 1, temp))
+    when(isnull(exact), sum(w * temp) / sum(w)).otherwise(exact)
+  }
 
-    j.groupBy($"loc").agg( when( isnull(exact), sum(w*temp)/sum(w) ).otherwise(exact) ).as[(Location,Temperature)]
+  val gcd: UserDefinedFunction = udf { (aLoc: Row, bLoc: Row) =>
+    dSigma(aLoc.getDouble(0),aLoc.getDouble(1),bLoc.getDouble(0),bLoc.getDouble(1)) * BigR
   }
 
   val BigR = 6731
 
-  def dSigma(aLat: Double, aLon: Double, bLat: Double, bLon: Double): Temperature = {
+  def dSigma(aLat: Double, aLon: Double, bLat: Double, bLon: Double): Double = {
     import math._
     if (aLat == bLat && aLon == bLon) 0d
     else if (abs(aLon - bLon) == 180 && aLat + bLat == 0) Pi
