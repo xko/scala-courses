@@ -43,4 +43,10 @@ trait VisualizationTest extends MilestoneSuite with Matchers {
     predictTemperature( List((Location(45.0,-90.0),10.0), (Location(-45.0,0.0),20.0)),Location(0,-45.0) ) should be ( 15d )
   }
 
+  @Test def interpolates_color(): Unit = milestoneTest {
+    interpolateColor(List((1.0,Color(255,0,0)), (2.0,Color(0,0,255)), (3.0,Color(0,255,0))),1.5) should be (
+      Color(128,0,128)
+    )
+  }
+
 }

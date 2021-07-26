@@ -7,6 +7,7 @@ import org.apache.spark.sql.functions._
 
 import scala.annotation.tailrec
 
+import scala.collection.SortedMap
 
 /**
   * 2nd milestone: basic visualization
@@ -41,7 +42,16 @@ object Visualization extends VisualizationInterface {
     * @return The color that corresponds to `value`, according to the color scale defined by `points`
     */
   def interpolateColor(points: Iterable[(Temperature, Color)], value: Temperature): Color = {
-    ???
+    def ipl(x: Double, xl: Double, yl: Double, xh: Double, yh: Double) = (yl*(xh-x) + yh*(x-xl))/(xh-xl)
+    val t = SortedMap(points.toSeq:_*)
+    val (before,after) = (t.until(value), t.from(value))
+    if (before.isEmpty) after.head._2 else if (after.isEmpty) before.last._2
+    else {
+      val ((tl,cl),(th,ch)) = (before.last,after.head)
+      Color( ipl(value, tl, cl.red, th, ch.red).round.toInt,
+             ipl(value, tl, cl.green, th, ch.green).round.toInt,
+             ipl(value, tl, cl.blue, th, ch.blue).round.toInt )
+    }
   }
 
   /**
