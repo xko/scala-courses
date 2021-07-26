@@ -12,7 +12,8 @@ import scala.annotation.tailrec
   * 2nd milestone: basic visualization
   */
 object Visualization extends VisualizationInterface {
-  import Extraction.spark.implicits._
+  import Extraction.spark
+  import spark.implicits._
 
   /**
     * @param temperatures Known temperatures: pairs containing a location and the temperature at this location
@@ -50,11 +51,6 @@ object Visualization extends VisualizationInterface {
     */
   def visualize(temperatures: Iterable[(Location, Temperature)], colors: Iterable[(Temperature, Color)]): Image = {
     ???
-  }
-
-  def sparkPredictTemperature(refs: Dataset[(Location, Temperature)], target:Location): Dataset[Temperature] = {
-    val targetCol = struct(lit(target.lat).as("lat"), lit(target.lon).as("lon"))
-    refs.agg(tempIDW(targetCol, $"_1", $"_2")).as[Temperature]
   }
 
   def sparkPredictTemperatures(refs: Dataset[(Location, Temperature)], targets: Dataset[Location]): Dataset[(Location, Temperature)] =

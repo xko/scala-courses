@@ -31,7 +31,16 @@ trait VisualizationTest extends MilestoneSuite with Matchers {
     )),Location(69.293,15.144) ) should be ( 5.597222222222224 )
   }
 
-  // Implement tests for the methods of the `Visualization` object
+  @Test def interpolates_temperature_1p(): Unit = milestoneTest{
+    predictTemperature(Array((Location(0.0,0.0),10.0)),Location(90.0,-180.0) ) should be ( 10d )
+  }
 
+  @Test def interpolates_temperature_2p_exact(): Unit = milestoneTest{
+    predictTemperature( List((Location(45.0,-90.0),10.0), (Location(-45.0,0.0),20.0)),Location(45.0,-90.0) ) should be ( 10d )
+  }
+
+  @Test def interpolates_temperature_2p_middle(): Unit = milestoneTest{
+    predictTemperature( List((Location(45.0,-90.0),10.0), (Location(-45.0,0.0),20.0)),Location(0,-45.0) ) should be ( 15d )
+  }
 
 }
