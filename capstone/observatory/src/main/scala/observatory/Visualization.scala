@@ -5,6 +5,8 @@ import org.apache.spark.sql.expressions.UserDefinedFunction
 import org.apache.spark.sql.{Column, Dataset, Row}
 import org.apache.spark.sql.functions._
 
+import scala.annotation.tailrec
+
 
 /**
   * 2nd milestone: basic visualization
@@ -18,7 +20,18 @@ object Visualization extends VisualizationInterface {
     * @return The predicted temperature at `location`
     */
   def predictTemperature(temperatures: Iterable[(Location, Temperature)], location: Location): Temperature = {
-    sparkPredictTemperature(temperatures.toSeq.toDS, location).head()
+    @tailrec def sums(temps: Stream[(Location, Temperature)], num: Double, den: Double):(Double,Double) = temps match {
+      case Stream.Empty => (num,den)
+      case (refLoc,refTemp) #:: tail =>
+        val gcd = dSigma(refLoc.lat, refLoc.lon, location.lat, location.lon) * BigR
+        if(gcd < 1) (refTemp,1)
+        else {
+          val w = 1 / math.pow(gcd, 2)
+          sums(tail, num + w*refTemp, den + w)
+        }
+    }
+    val (num,den) = sums(temperatures.toStream,0 ,0)
+    num/den
   }
 
   /**
