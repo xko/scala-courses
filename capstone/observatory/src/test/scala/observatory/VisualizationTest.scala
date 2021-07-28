@@ -10,7 +10,7 @@ import java.time.LocalDate
 trait VisualizationTest extends MilestoneSuite with Matchers {
   private val milestoneTest = namedMilestoneTest("raw data display", 2) _
 
-  import Extraction.spark.implicits._
+  import Spark.spark.implicits._
 
   @Test def interpolates_temperatures(): Unit = milestoneTest{
     val refs = Extraction.avgTemps(

@@ -1,6 +1,5 @@
 package observatory
 
-import org.apache.spark.LocalDateUDT
 import org.apache.spark.sql._
 import org.apache.spark.sql.functions._
 
@@ -12,21 +11,8 @@ import scala.io.Source
   */
 object Extraction extends ExtractionInterface {
 
-  import org.apache.log4j.{Level, Logger}
-  Logger.getLogger("org.apache.spark").setLevel(Level.WARN)
-
-  val spark: SparkSession =
-    SparkSession
-      .builder()
-      .appName("Observatory")
-      .master("local[*]")
-      .getOrCreate()
-
+  import Spark._
   import spark.implicits._
-
-  LocalDateUDT.register()
-  import LocalDateUDT.encoder
-
 
   /**
     * @param year             Year number

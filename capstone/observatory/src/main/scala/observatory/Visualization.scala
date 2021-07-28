@@ -6,15 +6,13 @@ import org.apache.spark.sql.{Column, Dataset, Row}
 import org.apache.spark.sql.functions._
 
 import scala.annotation.tailrec
-
 import scala.collection.SortedMap
 
 /**
   * 2nd milestone: basic visualization
   */
 object Visualization extends VisualizationInterface {
-  import Extraction.spark
-  import spark.implicits._
+  import Spark.spark.implicits._
 
   /**
     * @param temperatures Known temperatures: pairs containing a location and the temperature at this location

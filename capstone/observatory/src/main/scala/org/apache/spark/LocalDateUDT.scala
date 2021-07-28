@@ -1,7 +1,5 @@
 package org.apache.spark
 
-import org.apache.spark.sql.Encoder
-import org.apache.spark.sql.catalyst.encoders.ExpressionEncoder
 import org.apache.spark.sql.types.{DataType, UDTRegistration, UserDefinedType}
 
 import java.time.LocalDate
@@ -17,7 +15,5 @@ class LocalDateUDT extends UserDefinedType[LocalDate]{
 
 object LocalDateUDT {
   def register(): Unit = UDTRegistration.register(classOf[LocalDate].getName, classOf[LocalDateUDT].getName)
-
-  implicit def encoder: Encoder[LocalDate] = ExpressionEncoder()
 
 }
