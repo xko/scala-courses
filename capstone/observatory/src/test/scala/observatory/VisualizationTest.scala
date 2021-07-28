@@ -7,7 +7,7 @@ import org.scalatest.matchers.should.Matchers
 
 import java.time.LocalDate
 
-trait VisualizationTest extends MilestoneSuite with Matchers {
+class VisualizationTest extends MilestoneSuite with Matchers {
   private val milestoneTest = namedMilestoneTest("raw data display", 2) _
 
   import Spark.spark.implicits._

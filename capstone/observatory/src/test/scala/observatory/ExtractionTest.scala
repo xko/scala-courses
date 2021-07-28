@@ -6,7 +6,7 @@ import org.scalatest.matchers.should.Matchers
 import java.time.LocalDate
 
 
-trait ExtractionTest extends MilestoneSuite with Matchers {
+class ExtractionTest extends MilestoneSuite with Matchers {
   private val milestoneTest = namedMilestoneTest("data extraction", 1) _
 
   import Extraction._
