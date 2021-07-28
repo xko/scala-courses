@@ -13,7 +13,10 @@ object Spark {
   import org.apache.log4j.{Level, Logger}
   Logger.getLogger("org.apache.spark").setLevel(Level.WARN)
 
-  val spark: SparkSession = SparkSession.builder().appName("Observatory").master("local[*]").getOrCreate()
+  val spark: SparkSession = SparkSession.builder().appName("Observatory")
+    .config("spark.ui.enabled",false)
+    .config("spark.memory.storageFraction",0.1)
+    .master("local[*]").getOrCreate()
   import spark.implicits._
 
   LocalDateUDT.register()
