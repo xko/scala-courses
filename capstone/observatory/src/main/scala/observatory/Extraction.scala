@@ -33,9 +33,7 @@ object Extraction extends ExtractionInterface {
   }
 
   def avgTemps(t: Dataset[(LocalDate, Location, Temperature)]): Dataset[(Location, Temperature)] = {
-    t.groupBy($"_2").agg(avg("_3"))
-      .withColumnRenamed("_2","_1").withColumnRenamed("avg(_3)","_2")
-      .as[(Location,Temperature)]
+    t.groupBy($"_2").agg(avg("_3")).asProduct[(Location,Temperature)]
   }
 
   case class RawTempRec(stn: Long, wban: Long, month: Int, day: Int, temp: Double)
@@ -44,10 +42,8 @@ object Extraction extends ExtractionInterface {
   def locTemps(year: Year, s: Dataset[RawStationRec], t: Dataset[RawTempRec]): Dataset[(LocalDate, Location, Temperature)] = {
     val todate = udf( (month: Int, day: Int) => LocalDate.of(year, month, day) )
     t.joinWith(s, t("stn") === s("stn") && t("wban") === s("wban")).select(
-      todate($"_1.month",$"_1.day").as("_1").as[LocalDate],
-      struct($"_2.lat", $"_2.lon" ).as("_2").as[Location],
-      $"_1.temp".as("_3").as[Temperature]
-    )
+      todate($"_1.month",$"_1.day"), asProduct[Location]($"_2.lat", $"_2.lon"), $"_1.temp"
+      ).asProduct[(LocalDate,Location,Temperature)]
   }
 
   def readTemps(file: String): Dataset[RawTempRec] =

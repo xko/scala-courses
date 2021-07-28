@@ -12,7 +12,8 @@ import scala.collection.SortedMap
   * 2nd milestone: basic visualization
   */
 object Visualization extends VisualizationInterface {
-  import Spark.spark.implicits._
+  import Spark._
+  import spark.implicits._
 
   /**
     * @param temperatures Known temperatures: pairs containing a location and the temperature at this location
@@ -62,9 +63,9 @@ object Visualization extends VisualizationInterface {
   }
 
   def sparkPredictTemperatures(refs: Dataset[(Location, Temperature)], targets: Dataset[Location]): Dataset[(Location, Temperature)] =
-    targets.select(struct($"lat", $"lon").as("loc"))
+    targets.select(asProduct[Location]($"lat", $"lon").as("loc"))
       .crossJoin(refs).groupBy($"loc")
-      .agg( tempIDW($"loc", $"_1", $"_2") ).as[(Location,Temperature)]
+      .agg( tempIDW($"loc", $"_1", $"_2") ).asProduct[(Location,Temperature)]
 
   def tempIDW(targetLoc: Column, refLoc: Column, temp: Column): Column = {
     val w = lit(1) / pow(gcd(targetLoc, refLoc), lit(2))
