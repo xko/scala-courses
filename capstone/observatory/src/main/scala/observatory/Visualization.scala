@@ -2,7 +2,7 @@ package observatory
 
 import com.sksamuel.scrimage.{Image, Pixel}
 import org.apache.spark.sql.expressions.UserDefinedFunction
-import org.apache.spark.sql.{Column, Dataset, Row}
+import org.apache.spark.sql._
 import org.apache.spark.sql.functions._
 
 import scala.annotation.tailrec
@@ -53,13 +53,29 @@ object Visualization extends VisualizationInterface {
     }
   }
 
+  val ImgW = 360
+  val ImgH = 180
+  val Colors = List( (-60d,Color(0,0,0)), (-50d,Color(33,0,107)), (-27d,Color(255,0,255)), (-15d,Color(0,0,255)),
+                     (0d,Color(0,255,255)), (12d, Color(255,255,0)), (32d,Color(255,0,0)), (60d,Color(255,255,255)))
+
   /**
     * @param temperatures Known temperatures
     * @param colors Color scale
     * @return A 360×180 image where each pixel shows the predicted temperature at its location
     */
   def visualize(temperatures: Iterable[(Location, Temperature)], colors: Iterable[(Temperature, Color)]): Image = {
-    ???
+    sparkVisualize(temperatures.toSeq.toDS(), colors)
+  }
+
+  def sparkVisualize(refs: Dataset[(Location, Temperature)], colors: Iterable[(Temperature, Color)]): Image = {
+    val lat = lit(90d) - floor($"id" / lit(ImgW))
+    val lon = $"id" % lit(ImgW) - lit(180d)
+    val locs = Spark.spark.range(0, ImgW * ImgH).select(lat, lon).asProduct[Location]
+    val temps = sparkPredictTemperatures(refs, locs).sort($"_1.lat".desc, $"_1.lon")
+    val pixels = temps.select($"_2".as[Temperature])
+      .map(interpolateColor(colors, _))
+      .collect().map(c => Pixel.apply(c.red, c.green, c.blue, 255))
+    Image(ImgW, ImgH, pixels)
   }
 
   def sparkPredictTemperatures(refs: Dataset[(Location, Temperature)], targets: Dataset[Location]): Dataset[(Location, Temperature)] =
@@ -87,14 +103,6 @@ object Visualization extends VisualizationInterface {
                     cos(toRadians(aLat)) * cos(toRadians(bLat)) * cos(toRadians(aLon) - toRadians(bLon)) )
   }
 
-  val ImgW = 360
-  val ImgH = 180
-
-  def pxLocation(pxNo: Int ): Location = {
-    val x = pxNo % ImgW
-    val y = pxNo / ImgW
-    Location(90-y,x-180)
-  }
 
 }
 

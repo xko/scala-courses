@@ -1,8 +1,9 @@
 package observatory
 
+import com.sksamuel.scrimage.nio.ImageWriter
 import observatory.Extraction.locationYearlyAverageRecords
 import observatory.Visualization._
-import org.junit.Test
+import org.junit.{Ignore, Test}
 import org.scalatest.matchers.should.Matchers
 
 import java.time.LocalDate
@@ -47,6 +48,21 @@ class VisualizationTest extends MilestoneSuite with Matchers {
     interpolateColor(List((1.0,Color(255,0,0)), (2.0,Color(0,0,255)), (3.0,Color(0,255,0))),1.5) should be (
       Color(128,0,128)
     )
+  }
+
+  @Test def generates_image(): Unit = {
+    val image = visualize(List((Location(-170, 80), 33), (Location(170, 80), 33),
+                               (Location(-170, -80), 33), (Location(170, -80), 33),
+                               (Location(0, 0), -15)), Colors)
+    image.output("target/simple.png")(ImageWriter.default)
+  }
+
+  @Ignore def generates_image_full(): Unit = {
+    val refs = Extraction.avgTemps(
+      Extraction.locTemps( 1987, Extraction.readStations("src/main/resources/stations.csv"),
+                           Extraction.readTemps("src/main/resources/1987.csv")) )
+    val image = sparkVisualize(refs, Colors)
+    image.output("target/full.png")(ImageWriter.default)
   }
 
 }
