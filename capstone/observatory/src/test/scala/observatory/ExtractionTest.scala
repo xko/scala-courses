@@ -10,6 +10,7 @@ class ExtractionTest extends MilestoneSuite with Matchers {
   private val milestoneTest = namedMilestoneTest("data extraction", 1) _
 
   import Extraction._
+  import SparkImpl._
 
   @Test def reads_temperatures(): Unit = milestoneTest{
     val d = readTemps("src/test/resources/temps.csv")

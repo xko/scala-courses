@@ -1,9 +1,7 @@
 package observatory
 
-import com.sksamuel.scrimage.{Pixel, RGBColor}
+import com.sksamuel.scrimage.RGBColor
 import com.sksamuel.scrimage.nio.ImageWriter
-import observatory.Extraction.locationYearlyAverageRecords
-import observatory.Visualization._
 import org.junit.{Ignore, Test}
 import org.scalatest.matchers.should.Matchers
 
@@ -13,14 +11,16 @@ class VisualizationTest extends MilestoneSuite with Matchers {
   private val milestoneTest = namedMilestoneTest("raw data display", 2) _
 
   import Spark.spark.implicits._
+  import Visualization._
+  import Extraction._
 
   @Test def interpolates_temperatures(): Unit = milestoneTest{
-    val refs = Extraction.avgTemps(
-      Extraction.locTemps( 2048, Extraction.readStations("src/test/resources/stations.csv"),
-                           Extraction.readTemps("src/test/resources/temps.csv")) )
+    import Extraction.SparkImpl._
+    import Visualization.SparkImpl._
+    val refs = avgTemps(locTemps(2048, readStations("src/test/resources/stations.csv"),
+                                       readTemps("src/test/resources/temps.csv")))
     val targets = Seq(Location(69.293, 15.144),Location(69.293, 14.144)).toDS
-
-    sparkPredictTemperatures(refs,targets).collect() should contain only (
+    interpolate(refs,targets).collect() should contain only (
       (Location(69.293,15.144),5.597222222222224), (Location(69.293,14.144),-4.888888888888889)
     )
   }
@@ -73,10 +73,11 @@ class VisualizationTest extends MilestoneSuite with Matchers {
   }
 
   @Ignore def generates_image_full(): Unit = {
-    val refs = Extraction.avgTemps(
-      Extraction.locTemps( 1987, Extraction.readStations("src/main/resources/stations.csv"),
-                           Extraction.readTemps("src/main/resources/1987.csv")) )
-    val image = sparkVisualize(refs, Colors)
+    import Visualization.SparkImpl._
+    import Extraction.SparkImpl._
+    val refs = avgTemps( locTemps(1987, readStations("src/main/resources/stations.csv"),
+                                        readTemps("src/main/resources/1987.csv")) )
+    val image = visualize(refs, Colors)
     image.output("target/full.png")(ImageWriter.default)
   }
 

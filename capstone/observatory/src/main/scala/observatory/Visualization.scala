@@ -1,9 +1,6 @@
 package observatory
 
 import com.sksamuel.scrimage.{Image, Pixel}
-import org.apache.spark.sql.expressions.UserDefinedFunction
-import org.apache.spark.sql._
-import org.apache.spark.sql.functions._
 
 import scala.annotation.tailrec
 import scala.collection.SortedMap
@@ -12,8 +9,22 @@ import scala.collection.SortedMap
   * 2nd milestone: basic visualization
   */
 object Visualization extends VisualizationInterface {
-  import Spark._
-  import spark.implicits._
+
+  val ImgW = 360
+  val ImgH = 180
+  val Colors = List( (-60d,Color(0,0,0)), (-50d,Color(33,0,107)), (-27d,Color(255,0,255)), (-15d,Color(0,0,255)),
+                     (0d,Color(0,255,255)), (12d, Color(255,255,0)), (32d,Color(255,0,0)), (60d,Color(255,255,255)))
+
+  val BigR = 6731
+
+  def dSigma(aLat: Double, aLon: Double, bLat: Double, bLon: Double): Double = {
+    import math._
+    if (aLat == bLat && aLon == bLon) 0d
+    else if (abs(aLon - bLon) == 180 && aLat + bLat == 0) Pi
+         else acos( sin(toRadians(aLat)) * sin(toRadians(bLat)) +
+                      cos(toRadians(aLat)) * cos(toRadians(bLat)) * cos(toRadians(aLon) - toRadians(bLon)) )
+  }
+
 
   /**
     * @param temperatures Known temperatures: pairs containing a location and the temperature at this location
@@ -53,58 +64,53 @@ object Visualization extends VisualizationInterface {
     }
   }
 
-  val ImgW = 360
-  val ImgH = 180
-  val Colors = List( (-60d,Color(0,0,0)), (-50d,Color(33,0,107)), (-27d,Color(255,0,255)), (-15d,Color(0,0,255)),
-                     (0d,Color(0,255,255)), (12d, Color(255,255,0)), (32d,Color(255,0,0)), (60d,Color(255,255,255)))
-
   /**
     * @param temperatures Known temperatures
     * @param colors Color scale
     * @return A 360×180 image where each pixel shows the predicted temperature at its location
     */
   def visualize(temperatures: Iterable[(Location, Temperature)], colors: Iterable[(Temperature, Color)]): Image = {
-    sparkVisualize(temperatures.toSeq.toDS(), colors)
+    import Spark.spark.implicits._
+    SparkImpl.visualize(temperatures.toSeq.toDS(), colors)
   }
 
-  def sparkVisualize(refs: Dataset[(Location, Temperature)], colors: Iterable[(Temperature, Color)]): Image = {
-    val lat = lit(90d) - floor($"id" / lit(ImgW))
-    val lon = $"id" % lit(ImgW) - lit(180d)
-    val locs = Spark.spark.range(0, ImgW * ImgH).select(lat, lon).asProduct[Location]
-    val temps = sparkPredictTemperatures(refs, locs)//.sort($"_1.lat".desc, $"_1.lon")
-    val img = Image(ImgW,ImgH)
-    temps.map { case (loc, temp) => (loc,interpolateColor(colors,temp)) }
-    .collect().foreach { case (loc:Location,c:Color) =>
-      img.setPixel(loc.lon.round.toInt+180,90-loc.lat.round.toInt, Pixel(c.red, c.green, c.blue, 255)   )
+  object SparkImpl {
+
+    import org.apache.spark.sql._
+    import org.apache.spark.sql.functions._
+    import org.apache.spark.sql.expressions.UserDefinedFunction
+
+    import Spark._
+    import spark.implicits._
+
+    val gcDistance: UserDefinedFunction = udf { (aLoc: Row, bLoc: Row) =>
+      dSigma(aLoc.getDouble(0), aLoc.getDouble(1), bLoc.getDouble(0), bLoc.getDouble(1)) * BigR
     }
-    img
+
+    def tempIDW(targetLoc: Column, refLoc: Column, temp: Column): Column = {
+      val w = lit(1) / pow(gcDistance(targetLoc, refLoc), lit(2))
+      val exact = first(when(gcDistance(refLoc, targetLoc) < 1, temp))
+      when(isnull(exact), sum(w * temp) / sum(w)).otherwise(exact)
+    }
+
+    def interpolate(refs: Dataset[(Location, Temperature)], targets: Dataset[Location]): Dataset[(Location, Temperature)] =
+      targets.select(asProduct[Location]($"lat", $"lon").as("loc"))
+        .crossJoin(refs).groupBy($"loc")
+        .agg(tempIDW($"loc", $"_1", $"_2")).asProduct[(Location, Temperature)]
+
+    def visualize(refs: Dataset[(Location, Temperature)], colors: Iterable[(Temperature, Color)]): Image = {
+      val lat = lit(90d) - floor($"id" / lit(ImgW))
+      val lon = $"id" % lit(ImgW) - lit(180d)
+      val locs = spark.range(0, ImgW * ImgH).select(lat, lon).asProduct[Location]
+      val temps = interpolate(refs, locs) //.sort($"_1.lat".desc, $"_1.lon")
+      val img = Image(ImgW, ImgH)
+      temps.map { case (loc, temp) => (loc, interpolateColor(colors, temp)) }
+        .collect().foreach { case (loc: Location, c: Color) =>
+        img.setPixel(loc.lon.round.toInt + 180, 90 - loc.lat.round.toInt, Pixel(c.red, c.green, c.blue, 255))
+      }
+      img
+    }
+
   }
-
-  def sparkPredictTemperatures(refs: Dataset[(Location, Temperature)], targets: Dataset[Location]): Dataset[(Location, Temperature)] =
-    targets.select(asProduct[Location]($"lat", $"lon").as("loc"))
-      .crossJoin(refs).groupBy($"loc")
-      .agg( tempIDW($"loc", $"_1", $"_2") ).asProduct[(Location,Temperature)]
-
-  def tempIDW(targetLoc: Column, refLoc: Column, temp: Column): Column = {
-    val w = lit(1) / pow(gcd(targetLoc, refLoc), lit(2))
-    val exact = first(when(gcd(refLoc, targetLoc) < 1, temp))
-    when(isnull(exact), sum(w * temp) / sum(w)).otherwise(exact)
-  }
-
-  val gcd: UserDefinedFunction = udf { (aLoc: Row, bLoc: Row) =>
-    dSigma(aLoc.getDouble(0),aLoc.getDouble(1),bLoc.getDouble(0),bLoc.getDouble(1)) * BigR
-  }
-
-  val BigR = 6731
-
-  def dSigma(aLat: Double, aLon: Double, bLat: Double, bLon: Double): Double = {
-    import math._
-    if (aLat == bLat && aLon == bLon) 0d
-    else if (abs(aLon - bLon) == 180 && aLat + bLat == 0) Pi
-         else acos( sin(toRadians(aLat)) * sin(toRadians(bLat)) +
-                    cos(toRadians(aLat)) * cos(toRadians(bLat)) * cos(toRadians(aLon) - toRadians(bLon)) )
-  }
-
-
 }
 
