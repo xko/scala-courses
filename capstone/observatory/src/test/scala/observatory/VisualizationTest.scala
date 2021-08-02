@@ -1,5 +1,6 @@
 package observatory
 
+import com.sksamuel.scrimage.{Pixel, RGBColor}
 import com.sksamuel.scrimage.nio.ImageWriter
 import observatory.Extraction.locationYearlyAverageRecords
 import observatory.Visualization._
@@ -55,6 +56,20 @@ class VisualizationTest extends MilestoneSuite with Matchers {
                                (Location(-170, -80), 33), (Location(170, -80), 33),
                                (Location(0, 0), -15)), Colors)
     image.output("target/simple.png")(ImageWriter.default)
+  }
+
+  @Test def generates_image_2p_middle(): Unit = {
+    val image = visualize( List((Location(45.0, -90.0), 0.0), (Location(-45.0, 0.0), 6.632951209392111)),
+                           List((0.0, Color(254, 0, 0)), (6.632951209392111, Color(0, 0, 254))) )
+    image.pixel(-45 + 180, 90).toColor should be (RGBColor(127, 0, 127, 255))
+    image.output("target/simple-.png")(ImageWriter.default)
+  }
+
+  @Test def generates_image_2p_exact(): Unit = {
+    val image = visualize( List((Location(45.0, -90.0), 0.0), (Location(-45.0, 0.0), 6.632951209392111)),
+                           List((0.0, Color(255, 0, 0)), (6.632951209392111, Color(0, 0, 255))) )
+    image.pixel(-90 + 180, 90 - 45).toColor should be (RGBColor(255, 0, 0, 255))
+    image.output("target/simple-.png")(ImageWriter.default)
   }
 
   @Ignore def generates_image_full(): Unit = {
