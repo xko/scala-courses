@@ -22,9 +22,9 @@ libraryDependencies ++= Seq(
   "io.monix" %% "monix" % "2.3.3",
   // You don’t *have to* use fs2, but in case you want to, we have added the dependency
   "co.fs2" %% "fs2-io" % "1.0.5",
-  "org.scalacheck" %% "scalacheck" % "1.13.5" % Test,
   "com.novocode" % "junit-interface" % "0.11" % Test,
-  "org.scalatest" %% "scalatest" % "3.2.0" % Test
+  "org.scalatest" %% "scalatest" % "3.2.9" % Test,
+  "org.scalatestplus" %% "scalacheck-1-15" % "3.2.9.0" % "test"
 )
 
 testOptions in Test += Tests.Argument(TestFrameworks.JUnit, "-a", "-v", "-s")
