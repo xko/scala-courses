@@ -71,11 +71,13 @@ object Visualization extends VisualizationInterface {
     val lat = lit(90d) - floor($"id" / lit(ImgW))
     val lon = $"id" % lit(ImgW) - lit(180d)
     val locs = Spark.spark.range(0, ImgW * ImgH).select(lat, lon).asProduct[Location]
-    val temps = sparkPredictTemperatures(refs, locs).sort($"_1.lat".desc, $"_1.lon")
-    val pixels = temps.select($"_2".as[Temperature])
-      .map(interpolateColor(colors, _))
-      .collect().map(c => Pixel.apply(c.red, c.green, c.blue, 255))
-    Image(ImgW, ImgH, pixels)
+    val temps = sparkPredictTemperatures(refs, locs)//.sort($"_1.lat".desc, $"_1.lon")
+    val img = Image(ImgW,ImgH)
+    temps.map { case (loc, temp) => (loc,interpolateColor(colors,temp)) }
+    .collect().foreach { case (loc:Location,c:Color) =>
+      img.setPixel(loc.lon.round.toInt+180,90-loc.lat.round.toInt, Pixel(c.red, c.green, c.blue, 255)   )
+    }
+    img
   }
 
   def sparkPredictTemperatures(refs: Dataset[(Location, Temperature)], targets: Dataset[Location]): Dataset[(Location, Temperature)] =
