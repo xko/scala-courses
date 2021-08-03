@@ -97,13 +97,14 @@ class VisualizationTest extends AnyFunSpec with Matchers with ScalaCheckProperty
       describe("with 2 refs"){
         it("works between") {
           val image = visualize( List((Location(45.0, -90.0), 0.0), (Location(-45.0, 0.0), 6.632951209392111)),
-                                 List((0.0, Color(254, 0, 0)), (6.632951209392111, Color(0, 0, 254))) )
-          image.pixel(-45 + 180, 90).toColor should be (RGBColor(127, 0, 127, 255))
+                                 List((0.0, Color(255, 0, 0)), (6.632951209392111, Color(0, 0, 255))) )
+          image.pixel(Location(0,-45)).toColor should be (RGBColor(128, 0, 128, 255))
         }
         it("works on the edge") {
           val image = visualize( List((Location(45.0, -90.0), 0.0), (Location(-45.0, 0.0), 6.632951209392111)),
                                  List((0.0, Color(255, 0, 0)), (6.632951209392111, Color(0, 0, 255))) )
-          image.pixel(-90 + 180, 90 - 45).toColor should be (RGBColor(255, 0, 0, 255))
+          image.output("target/tst.png")(ImageWriter.default)
+          image.pixel(Location(-45.0,0.0)).toColor should be (RGBColor(0, 0, 255, 255))
         }
 
         it("produces color closer to the closer ref") {
@@ -112,8 +113,8 @@ class VisualizationTest extends AnyFunSpec with Matchers with ScalaCheckProperty
             whenever( dSigma(near, x)<dSigma(far, x)  ){
               val image = visualize(List((near, tnear), (far, tfar)),
                                     List((tnear,Color(255,0,0)),(tfar,Color(0,255,0))))
-              image.pixel(x.lon.round.toInt + 180, 90 - x.lat.round.toInt).red.toDouble should beCloserTo(255,0)
-              image.pixel(x.lon.round.toInt + 180, 90 - x.lat.round.toInt).green.toDouble should beCloserTo(0,255)
+              image.pixel(x).red.toDouble should beCloserTo(255,0)
+              image.pixel(x).green.toDouble should beCloserTo(0,255)
             }
           }
         }

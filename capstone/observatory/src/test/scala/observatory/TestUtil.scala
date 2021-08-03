@@ -1,5 +1,6 @@
 package observatory
 
+import com.sksamuel.scrimage.{Image, Pixel}
 import observatory.Visualization.dSigma
 import org.scalacheck.{Arbitrary, Gen}
 import org.scalatest.matchers.{MatchResult, Matcher}
@@ -16,4 +17,7 @@ trait TestUtil {
                    s"$x was closer to $far then to $near", s"$x was closer to $near then to $far" )
     }
 
+  implicit class LocAwareImage(img: Image) {
+    def pixel(location: Location): Pixel = img.pixel(location.lon.round.toInt + 180, 90 - location.lat.round.toInt)
+  }
 }
