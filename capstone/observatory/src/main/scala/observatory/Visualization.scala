@@ -57,7 +57,9 @@ object Visualization extends VisualizationInterface {
     def ipl(x: Double, xl: Double, yl: Double, xh: Double, yh: Double) = (yl*(xh-x) + yh*(x-xl))/(xh-xl)
     val t = SortedMap(points.toSeq:_*)
     val (before,after) = (t.until(value), t.from(value))
-    if (before.isEmpty) after.head._2 else if (after.isEmpty) before.last._2
+    if (before.isEmpty) after.head._2
+    else if (after.isEmpty) before.last._2
+    else if(after.head._1 == value) after.head._2
     else {
       val ((tl,cl),(th,ch)) = (before.last,after.head)
       Color( ipl(value, tl, cl.red, th, ch.red).round.toInt,
@@ -91,7 +93,7 @@ object Visualization extends VisualizationInterface {
 
     def tempIDW(targetLoc: Column, refLoc: Column, temp: Column): Column = {
       val w = lit(1) / pow(gcDistance(targetLoc, refLoc), lit(2))
-      val exact = first(when(gcDistance(refLoc, targetLoc) < 1, temp))
+      val exact = first(when(gcDistance(refLoc, targetLoc) < 1, temp),true)
       when(isnull(exact), sum(w * temp) / sum(w)).otherwise(exact)
     }
 
