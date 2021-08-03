@@ -21,9 +21,11 @@ object Visualization extends VisualizationInterface {
     import math._
     if (aLat == bLat && aLon == bLon) 0d
     else if (abs(aLon - bLon) == 180 && aLat + bLat == 0) Pi
-         else acos( sin(toRadians(aLat)) * sin(toRadians(bLat)) +
-                      cos(toRadians(aLat)) * cos(toRadians(bLat)) * cos(toRadians(aLon) - toRadians(bLon)) )
+    else acos( sin(toRadians(aLat)) * sin(toRadians(bLat)) +
+               cos(toRadians(aLat)) * cos(toRadians(bLat)) * cos(toRadians(abs(aLon-bLon))) )
   }
+
+  def dSigma(a: Location, b:Location): Double = dSigma(a.lat, a.lon, b.lat, b.lon)
 
 
   /**
@@ -35,7 +37,7 @@ object Visualization extends VisualizationInterface {
     @tailrec def sums(temps: Stream[(Location, Temperature)], num: Double, den: Double):(Double,Double) = temps match {
       case Stream.Empty => (num,den)
       case (refLoc,refTemp) #:: tail =>
-        val gcd = dSigma(refLoc.lat, refLoc.lon, location.lat, location.lon) * BigR
+        val gcd = dSigma(refLoc,location) * BigR
         if(gcd < 1) (refTemp,1)
         else {
           val w = 1 / math.pow(gcd, 2)

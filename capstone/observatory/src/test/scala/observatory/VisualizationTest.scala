@@ -15,17 +15,17 @@ class VisualizationTest extends AnyFunSpec with Matchers {
   describe("graded methods") {
 
     describe("temperature interpolation") {
-      it("works on some points") {
+      it("works on some refs") {
         predictTemperature( locationYearlyAverageRecords( Array(
             (LocalDate.of(2048, 12, 21), Location(69.293, 14.144), 37.05555555555556),
             (LocalDate.of(2048, 1, 1), Location(69.293, 14.144), -4.888888888888889),
             (LocalDate.of(2048, 1, 1), Location(69.293, 16.144), -4.888888888888889)
           ) ), Location(69.293, 15.144) ) should be(5.597222222222224)
       }
-      it("works on 1 ref point") {
+      it("works on 1 ref") {
         predictTemperature(Array((Location(0.0, 0.0), 10.0)), Location(90.0, -180.0)) should be(10d)
       }
-      describe("with 2 ref points"){
+      describe("with 2 refs"){
         it("works on the edge") {
           predictTemperature(List((Location(45.0, -90.0), 10.0), (Location(-45.0, 0.0), 20.0)),
                              Location(45.0, -90.0)) should be(10d)
@@ -54,7 +54,7 @@ class VisualizationTest extends AnyFunSpec with Matchers {
         f should exist
       }
 
-      describe("with 2 ref. points"){
+      describe("with 2 refs"){
         it("works between") {
           val image = visualize( List((Location(45.0, -90.0), 0.0), (Location(-45.0, 0.0), 6.632951209392111)),
                                  List((0.0, Color(254, 0, 0)), (6.632951209392111, Color(0, 0, 254))) )
