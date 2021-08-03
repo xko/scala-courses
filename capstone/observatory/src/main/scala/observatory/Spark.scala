@@ -18,7 +18,7 @@ object Spark {
 
   val spark: SparkSession = SparkSession.builder().appName("Observatory")
     .config("spark.ui.enabled",false)
-    .config("spark.memory.storageFraction",0.1)
+    .config("spark.sql.shuffle.partitions",50)
     .master("local[*]").getOrCreate()
   import spark.implicits._
 
