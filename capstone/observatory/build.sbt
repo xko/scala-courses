@@ -24,7 +24,8 @@ libraryDependencies ++= Seq(
   "co.fs2" %% "fs2-io" % "1.0.5",
   "com.novocode" % "junit-interface" % "0.11" % Test,
   "org.scalatest" %% "scalatest" % "3.2.9" % Test,
-  "org.scalatestplus" %% "scalacheck-1-15" % "3.2.9.0" % "test"
+  "org.scalatestplus" %% "scalacheck-1-15" % "3.2.9.0" % "test",
+  "com.github.alexarchambault" %% "scalacheck-shapeless_1.15" % "1.3.0"
 )
 
 testOptions in Test += Tests.Argument(TestFrameworks.JUnit, "-a", "-v", "-s")

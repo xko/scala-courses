@@ -4,15 +4,44 @@ import com.sksamuel.scrimage.RGBColor
 import com.sksamuel.scrimage.nio.ImageWriter
 import org.scalatest.funspec.AnyFunSpec
 import org.scalatest.matchers.should.Matchers
+import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
 
 import java.io.File
 import java.time.LocalDate
+import scala.math.abs
 
-class VisualizationTest extends AnyFunSpec with Matchers {
+class VisualizationTest extends AnyFunSpec with Matchers with ScalaCheckPropertyChecks with TestUtil {
   import Visualization._
   import Extraction._
 
   describe("graded methods") {
+    describe("distance calculation") {
+      it("measures short") {
+        dSigma(52.54555032383161, 13.429522693308664, 52.54027818496617, 13.4750987873352) * BigR  shouldBe 3.1 +- .1
+        dSigma(52.54027818496617, 13.4750987873352, 52.54555032383161, 13.429522693308664) * BigR  shouldBe 3.1 +- .1
+        dSigma(78.24679661339356, 15.42422547530977, 78.25574486615133, 15.726963466565975) * BigR shouldBe 6.9 +- .1
+        dSigma(50.943527257197935, 15, 50.916614875561656, 15) * BigR shouldBe 3.0 +- .5
+        dSigma(50, 15.43780955087213,50, 15.384514971147482) * BigR shouldBe   3.6 +- .5
+      }
+      it("measures mid") {
+        dSigma(48.00071909593895, 2.872122953377574, 47.67743435797542, 31.98477638656484) * BigR shouldBe 2166.0 +- 10
+      }
+      it("measures long") {
+        dSigma(73.13477526915966, -38.780725997932024, -28.083865379340455, 140.41896872640262) * BigR shouldBe 14992.0 +- 20
+      }
+
+      it("produces no negatives"){
+        forAll{(a:Location, b:Location) =>
+          dSigma(a,b) should be >= 0.0
+        }
+      }
+
+      it("is commutative"){
+        forAll{(a:Location, b:Location) =>
+          dSigma(a,b) should equal (dSigma(b,a) )
+        }
+      }
+    }
 
     describe("temperature interpolation") {
       it("works on some refs") {
@@ -32,6 +61,17 @@ class VisualizationTest extends AnyFunSpec with Matchers {
         }
         it("works between") {
           predictTemperature( List((Location(45.0,-90.0),10.0), (Location(-45.0,0.0),20.0)),Location(0,-45.0) ) should be ( 15d )
+        }
+
+        describe("between arbitrary refs") {
+          it("predicts temp closer to the closer ref") {
+            forAll("near","tNear","far","tFar","x")
+            { (near:Location, tnear: Double, far:Location, tfar:Double, x: Location) =>
+              whenever( dSigma(near, x)<dSigma(far, x)  ){
+                predictTemperature(List((near, tnear), (far, tfar)), x) should beCloserTo(tnear,tfar)
+              }
+            }
+          }
         }
       }
     }
@@ -65,6 +105,19 @@ class VisualizationTest extends AnyFunSpec with Matchers {
                                  List((0.0, Color(255, 0, 0)), (6.632951209392111, Color(0, 0, 255))) )
           image.pixel(-90 + 180, 90 - 45).toColor should be (RGBColor(255, 0, 0, 255))
         }
+
+        it("produces color closer to the closer ref") {
+          forAll("near","tNear","far","tFar","x")
+          { (near:Location, tnear: Double, far:Location, tfar:Double, x: Location) =>
+            whenever( dSigma(near, x)<dSigma(far, x)  ){
+              val image = visualize(List((near, tnear), (far, tfar)),
+                                    List((tnear,Color(255,0,0)),(tfar,Color(0,255,0))))
+              image.pixel(x.lon.round.toInt + 180, 90 - x.lat.round.toInt).red.toDouble should beCloserTo(255,0)
+              image.pixel(x.lon.round.toInt + 180, 90 - x.lat.round.toInt).green.toDouble should beCloserTo(0,255)
+            }
+          }
+        }
+
       }
     }
   }
