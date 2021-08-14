@@ -27,21 +27,21 @@ object Spark {
   val asDate: UserDefinedFunction = udf((year:Int, month: Int, day: Int) => LocalDate.of(year, month, day))
 
 
-  implicit class AsNamedProductDS(ds:Dataset[_]){
-    def asProduct[T <: Product : TypeTag]: Dataset[T] =
+  implicit class DSofNamedProducts(ds:Dataset[_]){
+    def asNamed[T <: Product : TypeTag]: Dataset[T] =
       Encoders.product[T].schema.fields.zipWithIndex.foldLeft(ds.toDF) { case (ds, (fld, i)) =>
         ds.withColumnRenamed(ds.columns(i), fld.name)
       }.as[T]
   }
 
-  def asProduct[T <: Product : TypeTag](cols: Column*): TypedColumn[_, T] = {
+  def asNamed[T <: Product : TypeTag](cols: Column*): TypedColumn[_, T] = {
     val cs = Encoders.product[T].schema.fields.zip(cols).map { case (fld, col) => col.as(fld.name) }
     struct(cs:_*).as[T]
   }
 
   def csv[T <: Product : TypeTag](lines: Dataset[String])(sanitize: DataFrame => DataFrame): Dataset[T] = {
     val s = Encoders.product[T].schema
-    sanitize( spark.read.schema( s.copy(s.fields.map(_.copy(nullable = true))) ).csv(lines) ).asProduct[T]
+    sanitize( spark.read.schema( s.copy(s.fields.map(_.copy(nullable = true))) ).csv(lines) ).asNamed[T]
   }
 
   def text(fileOrResource:String): Dataset[String] = {

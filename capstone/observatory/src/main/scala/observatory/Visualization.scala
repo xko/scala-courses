@@ -98,14 +98,14 @@ object Visualization extends VisualizationInterface {
     }
 
     def interpolate(refs: Dataset[(Location, Temperature)], targets: Dataset[Location]): Dataset[(Location, Temperature)] =
-      targets.select(asProduct[Location]($"lat", $"lon").as("loc"))
+      targets.select(asNamed[Location]($"lat", $"lon").as("loc"))
         .crossJoin(refs).groupBy($"loc")
-        .agg(tempIDW($"loc", $"_1", $"_2")).asProduct[(Location, Temperature)]
+        .agg(tempIDW($"loc", $"_1", $"_2")).asNamed
 
     def visualize(refs: Dataset[(Location, Temperature)], colors: Iterable[(Temperature, Color)]): Image = {
       val lat = lit(90d) - floor($"id" / lit(ImgW))
       val lon = $"id" % lit(ImgW) - lit(180d)
-      val locs = spark.range(0, ImgW * ImgH).select(lat, lon).asProduct[Location]
+      val locs = spark.range(0, ImgW * ImgH).select(lat, lon).asNamed[Location]
       val temps = interpolate(refs, locs) //.sort($"_1.lat".desc, $"_1.lon")
       val img = Image(ImgW, ImgH)
       temps.map { case (loc, temp) => (loc, interpolateColor(colors, temp)) }

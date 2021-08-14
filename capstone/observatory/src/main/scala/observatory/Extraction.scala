@@ -36,7 +36,7 @@ object Extraction extends ExtractionInterface {
     import spark.implicits._
 
     def avgTemps(t: Dataset[(LocalDate, Location, Temperature)]): Dataset[(Location, Temperature)] = {
-      t.groupBy($"_2").agg(avg("_3")).asProduct[(Location,Temperature)]
+      t.groupBy($"_2").agg(avg("_3")).asNamed
     }
 
     case class RawTempRec(stn: Long, wban: Long, month: Int, day: Int, temp: Double)
@@ -44,8 +44,8 @@ object Extraction extends ExtractionInterface {
 
     def locTemps(year: Year, s: Dataset[RawStationRec], t: Dataset[RawTempRec]): Dataset[(LocalDate, Location, Temperature)] = {
       t.joinWith(s, t("stn") === s("stn") && t("wban") === s("wban")).select(
-        asDate(lit(year),$"_1.month", $"_1.day"), asProduct[Location]($"_2.lat", $"_2.lon"), $"_1.temp"
-        ).asProduct[(LocalDate,Location,Temperature)]
+        asDate(lit(year),$"_1.month", $"_1.day"), asNamed[Location]($"_2.lat", $"_2.lon"), $"_1.temp"
+        ).asNamed
     }
 
 
