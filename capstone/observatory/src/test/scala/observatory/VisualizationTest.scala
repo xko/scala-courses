@@ -8,7 +8,6 @@ import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
 
 import java.io.File
 import java.time.LocalDate
-import scala.math.abs
 
 class VisualizationTest extends AnyFunSpec with Matchers with ScalaCheckPropertyChecks with TestUtil {
   import Visualization._
@@ -66,9 +65,9 @@ class VisualizationTest extends AnyFunSpec with Matchers with ScalaCheckProperty
         describe("between arbitrary refs") {
           it("predicts temp closer to the closer ref") {
             forAll("near","tNear","far","tFar","x")
-            { (near:Location, tnear: Double, far:Location, tfar:Double, x: Location) =>
+            { (near:Location, tNear: Double, far:Location, tFar:Double, x: Location) =>
               whenever( dSigma(near, x)<dSigma(far, x)  ){
-                predictTemperature(List((near, tnear), (far, tfar)), x) should beCloserTo(tnear,tfar)
+                predictTemperature(List((near, tNear), (far, tFar)), x) should beCloserTo(tNear, tFar)
               }
             }
           }
@@ -108,11 +107,10 @@ class VisualizationTest extends AnyFunSpec with Matchers with ScalaCheckProperty
         }
 
         it("produces color closer to the closer ref") {
-          forAll("near","tNear","far","tFar","x")
-          { (near:Location, tnear: Double, far:Location, tfar:Double, x: Location) =>
-            whenever( dSigma(near, x)<dSigma(far, x)  ){
-              val image = visualize(List((near, tnear), (far, tfar)),
-                                    List((tnear,Color(255,0,0)),(tfar,Color(0,255,0))))
+          forAll("near","tNear","far","tFar","x") { (near:Location, tNear: Double, far:Location, tFar:Double, x: Location) =>
+            whenever(dSigma(near, x) < dSigma(far, x)) {
+              val image = visualize(List((near, tNear), (far, tFar)),
+                                    List((tNear,Color(255, 0, 0)), (tFar,Color(0, 255, 0))))
               image.pixel(x).red.toDouble should beCloserTo(255,0)
               image.pixel(x).green.toDouble should beCloserTo(0,255)
             }

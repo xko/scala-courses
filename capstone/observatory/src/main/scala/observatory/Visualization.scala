@@ -34,7 +34,8 @@ object Visualization extends VisualizationInterface {
     * @return The predicted temperature at `location`
     */
   def predictTemperature(temperatures: Iterable[(Location, Temperature)], location: Location): Temperature = {
-    @tailrec def sums(temps: Stream[(Location, Temperature)], num: Double, den: Double):(Double,Double) = temps match {
+    @tailrec
+    def sums(temps: Stream[(Location, Temperature)], num: Double, den: Double):(Double,Double) = temps match {
       case Stream.Empty => (num,den)
       case (refLoc,refTemp) #:: tail =>
         val gcd = dSigma(refLoc,location) * BigR
@@ -59,7 +60,7 @@ object Visualization extends VisualizationInterface {
     val (before,after) = (t.until(value), t.from(value))
     if (before.isEmpty) after.head._2
     else if (after.isEmpty) before.last._2
-    else if(after.head._1 == value) after.head._2
+    else if (after.head._1 == value) after.head._2
     else {
       val ((tl,cl),(th,ch)) = (before.last,after.head)
       Color( ipl(value, tl, cl.red, th, ch.red).round.toInt,
@@ -93,7 +94,7 @@ object Visualization extends VisualizationInterface {
 
     def tempIDW(targetLoc: Column, refLoc: Column, temp: Column): Column = {
       val w = lit(1) / pow(gcDistance(targetLoc, refLoc), lit(2))
-      val exact = first(when(gcDistance(refLoc, targetLoc) < 1, temp),true)
+      val exact = first(when(gcDistance(refLoc, targetLoc) < 1, temp), ignoreNulls = true)
       when(isnull(exact), sum(w * temp) / sum(w)).otherwise(exact)
     }
 
@@ -117,4 +118,3 @@ object Visualization extends VisualizationInterface {
 
   }
 }
-

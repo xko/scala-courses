@@ -1,7 +1,6 @@
 package observatory
 
 import com.sksamuel.scrimage.{Image, Pixel}
-import observatory.Visualization.dSigma
 import org.scalacheck.{Arbitrary, Gen}
 import org.scalatest.matchers.{MatchResult, Matcher}
 
