@@ -67,7 +67,7 @@ class VisualizationTest extends AnyFunSpec with Matchers with ScalaCheckProperty
             forAll("near","tNear","far","tFar","x")
             { (near:Location, tNear: Double, far:Location, tFar:Double, x: Location) =>
               whenever( dSigma(near, x)<dSigma(far, x)  ){
-                predictTemperature(List((near, tNear), (far, tFar)), x) should beCloserTo(tNear, tFar)
+                predictTemperature(List((near, tNear), (far, tFar)), x) should beCloserTo(tNear).thenTo(tFar)
               }
             }
           }
@@ -111,8 +111,8 @@ class VisualizationTest extends AnyFunSpec with Matchers with ScalaCheckProperty
             whenever(dSigma(near, x) < dSigma(far, x)) {
               val image = visualize(List((near, tNear), (far, tFar)),
                                     List((tNear,Color(255, 0, 0)), (tFar,Color(0, 255, 0))))
-              image.pixel(x).red.toDouble should beCloserTo(255,0)
-              image.pixel(x).green.toDouble should beCloserTo(0,255)
+              image.pixel(x).red should beCloserTo(255).thenTo(0)
+              image.pixel(x).green should beCloserTo(0).thenTo(255)
             }
           }
         }
