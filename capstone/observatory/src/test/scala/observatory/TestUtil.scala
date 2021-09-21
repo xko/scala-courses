@@ -7,8 +7,10 @@ import org.scalatest.matchers.{MatchResult, Matcher}
 import scala.math.abs
 
 trait TestUtil {
-  val locations: Gen[Location] = for (lat <- Gen.choose(-90d, 90d); lon <- Gen.choose(-180d, 180d)) yield Location(lat, lon)
-  implicit val arbLocation: Arbitrary[Location] = Arbitrary(locations)
+  implicit val arbLocation: Arbitrary[Location] = Arbitrary( for {
+    lat <- Gen.choose(-90.0, 90.0)
+    lon <- Gen.choose(-180.0, 180.0)
+  } yield Location(lat, lon) )
 
   def beCloserTo(near: Double, far: Double): Matcher[Double] =
     Matcher[Double] { x =>
