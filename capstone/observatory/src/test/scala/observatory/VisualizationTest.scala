@@ -30,15 +30,11 @@ class VisualizationTest extends AnyFunSpec with Matchers with ScalaCheckProperty
       }
 
       it("produces no negatives"){
-        forAll{(a:Location, b:Location) =>
-          dSigma(a,b) should be >= 0.0
-        }
+        forAll{ (a:Location, b:Location) =>  dSigma(a,b) should be >= 0.0 }
       }
 
       it("is commutative"){
-        forAll{(a:Location, b:Location) =>
-          dSigma(a,b) should equal (dSigma(b,a) )
-        }
+        forAll{ (a:Location, b:Location) => dSigma(a,b) shouldEqual dSigma(b,a) }
       }
     }
 
@@ -48,26 +44,26 @@ class VisualizationTest extends AnyFunSpec with Matchers with ScalaCheckProperty
             (LocalDate.of(2048, 12, 21), Location(69.293, 14.144), 37.05555555555556),
             (LocalDate.of(2048, 1, 1), Location(69.293, 14.144), -4.888888888888889),
             (LocalDate.of(2048, 1, 1), Location(69.293, 16.144), -4.888888888888889)
-          ) ), Location(69.293, 15.144) ) should be(5.597222222222224)
+          ) ), Location(69.293, 15.144) ) shouldBe 5.597222222222224
       }
       it("works on 1 ref") {
-        predictTemperature(Array((Location(0.0, 0.0), 10.0)), Location(90.0, -180.0)) should be(10d)
+        predictTemperature( Array( Location(0.0, 0.0)->10.0 ), Location(90.0, -180.0) ) shouldBe 10.0
       }
       describe("with 2 refs"){
         it("works on the edge") {
-          predictTemperature(List((Location(45.0, -90.0), 10.0), (Location(-45.0, 0.0), 20.0)),
-                             Location(45.0, -90.0)) should be(10d)
+          predictTemperature( List( Location(45.0, -90.0)->10.0, Location(-45.0, 0.0)->20.0 ),
+                              Location(45.0, -90.0) ) shouldBe 10.0
         }
         it("works between") {
-          predictTemperature( List((Location(45.0,-90.0),10.0), (Location(-45.0,0.0),20.0)),Location(0,-45.0) ) should be ( 15d )
+          predictTemperature( List( Location(45.0, -90.0)->10.0, Location(-45.0, 0.0)->20.0 ),
+                              Location(0,-45.0) ) shouldBe 15.0
         }
 
         describe("between arbitrary refs") {
           it("predicts temp closer to the closer ref") {
-            forAll("near","tNear","far","tFar","x")
-            { (near:Location, tNear: Double, far:Location, tFar:Double, x: Location) =>
-              whenever( dSigma(near, x)<dSigma(far, x)  ){
-                predictTemperature(List((near, tNear), (far, tFar)), x) should beCloserTo(tNear).thenTo(tFar)
+            forAll { (near:Location, tNear: Temperature, far:Location, tFar:Temperature, x: Location) =>
+              whenever(dSigma(near, x) < dSigma(far, x)) {
+                predictTemperature( List(near->tNear, far->tFar), x ) should beCloserTo(tNear).thenTo(tFar)
               }
             }
           }
@@ -77,16 +73,16 @@ class VisualizationTest extends AnyFunSpec with Matchers with ScalaCheckProperty
 
     describe("color interpolation") {
       it("works on some points") {
-        interpolateColor(List((1.0, Color(255, 0, 0)), (2.0, Color(0, 0, 255)),
-                              (3.0, Color(0, 255, 0))), 1.5 ) should be ( Color(128, 0, 128) )
+        val color = interpolateColor( List(1.0->Color(255, 0, 0), 2.0->Color(0, 0, 255), 3.0->Color(0, 255, 0)), 1.5 )
+        color shouldBe Color(128, 0, 128)
       }
     }
 
     describe("visualization"){
       it("writes image file") {
-        val image = visualize(List((Location(-170, 80), 33), (Location(170, 80), 33),
-                                   (Location(-170, -80), 33), (Location(170, -80), 33),
-                                   (Location(0, 0), -15)), Colors)
+        val image = visualize( List( Location(-170, 80)->33, Location(170, 80)->33,
+                                     Location(-170, -80)->33, Location(170, -80)->33,
+                                     Location(0, 0)-> -15 ), Colors )
         val f = new File("target/simple.png")
         f.delete()
         image.output(f)(ImageWriter.default)
@@ -95,22 +91,22 @@ class VisualizationTest extends AnyFunSpec with Matchers with ScalaCheckProperty
 
       describe("with 2 refs"){
         it("works between") {
-          val image = visualize( List((Location(45.0, -90.0), 0.0), (Location(-45.0, 0.0), 6.632951209392111)),
-                                 List((0.0, Color(255, 0, 0)), (6.632951209392111, Color(0, 0, 255))) )
-          image.pixel(Location(0,-45)).toColor should be (RGBColor(128, 0, 128, 255))
+          val image = visualize( List( Location(45.0, -90.0)->0.0, Location(-45.0, 0.0)->6.632951209392111 ),
+                                 List(0.0->Color(255, 0, 0), 6.632951209392111->Color(0, 0, 255)) )
+          image.pixel(Location(0,-45)).toColor shouldBe RGBColor(128, 0, 128, 255)
         }
         it("works on the edge") {
           val image = visualize( List((Location(45.0, -90.0), 0.0), (Location(-45.0, 0.0), 6.632951209392111)),
                                  List((0.0, Color(255, 0, 0)), (6.632951209392111, Color(0, 0, 255))) )
           image.output("target/tst.png")(ImageWriter.default)
-          image.pixel(Location(-45.0,0.0)).toColor should be (RGBColor(0, 0, 255, 255))
+          image.pixel(Location(-45.0,0.0)).toColor shouldBe RGBColor(0, 0, 255, 255)
         }
 
         it("produces color closer to the closer ref") {
-          forAll("near","tNear","far","tFar","x") { (near:Location, tNear: Double, far:Location, tFar:Double, x: Location) =>
+          forAll { (near:Location, tNear: Temperature, far:Location, tFar:Temperature, x: Location) =>
             whenever(dSigma(near, x) < dSigma(far, x)) {
-              val image = visualize(List((near, tNear), (far, tFar)),
-                                    List((tNear,Color(255, 0, 0)), (tFar,Color(0, 255, 0))))
+              val image = visualize( List(near->tNear, far->tFar),
+                                     List(tNear->Color(255, 0, 0), tFar->Color(0, 255, 0)) )
               image.pixel(x).red should beCloserTo(255).thenTo(0)
               image.pixel(x).green should beCloserTo(0).thenTo(255)
             }
