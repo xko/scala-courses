@@ -16,6 +16,7 @@ object Visualization extends VisualizationInterface {
                      (0d,Color(0,255,255)), (12d, Color(255,255,0)), (32d,Color(255,0,0)), (60d,Color(255,255,255)))
 
   val BigR = 6371.0088
+  val P = 2
 
   def dSigma(aLat: Double, aLon: Double, bLat: Double, bLon: Double): Double = {
     import math._
@@ -41,7 +42,7 @@ object Visualization extends VisualizationInterface {
         val gcd = dSigma(refLoc,location) * BigR
         if(gcd < 1) (refTemp,1)
         else {
-          val w = 1 / math.pow(gcd, 2)
+          val w = 1 / math.pow(gcd, P)
           sums(tail, num + w*refTemp, den + w)
         }
     }
@@ -93,7 +94,7 @@ object Visualization extends VisualizationInterface {
     }
 
     def tempIDW(targetLoc: Column, refLoc: Column, temp: Column): Column = {
-      val w = lit(1) / pow(gcDistance(targetLoc, refLoc), lit(2))
+      val w = lit(1) / pow(gcDistance(targetLoc, refLoc), lit(P))
       val exact = first(when(gcDistance(refLoc, targetLoc) < 1, temp), ignoreNulls = true)
       when(isnull(exact), sum(w * temp) / sum(w)).otherwise(exact)
     }
