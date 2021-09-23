@@ -98,7 +98,6 @@ class VisualizationTest extends AnyFunSpec with Matchers with ScalaCheckProperty
         it("works on the edge") {
           val image = visualize( List((Location(45.0, -90.0), 0.0), (Location(-45.0, 0.0), 6.632951209392111)),
                                  List((0.0, Color(255, 0, 0)), (6.632951209392111, Color(0, 0, 255))) )
-          image.output("target/tst.png")(ImageWriter.default)
           image.pixel(Location(-45.0,0.0)).toColor shouldBe RGBColor(0, 0, 255, 255)
         }
 
