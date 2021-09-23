@@ -61,6 +61,7 @@ class VisualizationTest extends AnyFunSpec with Matchers with ScalaCheckProperty
 
         describe("between arbitrary refs") {
           it("predicts temp closer to the closer ref") {
+            import org.scalacheck.Shrink.shrinkAny
             forAll { (near:Location, tNear: Temperature, far:Location, tFar:Temperature, x: Location) =>
               whenever(dSigma(near, x) < dSigma(far, x)) {
                 predictTemperature( List(near->tNear, far->tFar), x ) should beCloserTo(tNear).thenTo(tFar)
@@ -104,6 +105,7 @@ class VisualizationTest extends AnyFunSpec with Matchers with ScalaCheckProperty
         }
 
         it("produces color closer to the closer ref") {
+          import org.scalacheck.Shrink.shrinkAny
           forAll { (near:Location, tNear: Temperature, far:Location, tFar:Temperature, x: Location) =>
             whenever(dSigma(near, x) < dSigma(far, x)) {
               val image = visualize( List(near->tNear, far->tFar),
