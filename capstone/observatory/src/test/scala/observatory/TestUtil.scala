@@ -21,7 +21,4 @@ trait TestUtil {
       }
   }
 
-  implicit class LocAwareImage(img: Image) {
-    def pixel(location: Location): Pixel = img.pixel(location.lon.round.toInt + 180, 90 - location.lat.round.toInt)
-  }
 }

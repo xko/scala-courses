@@ -1,6 +1,6 @@
 package observatory
 
-import com.sksamuel.scrimage.RGBColor
+import com.sksamuel.scrimage.Pixel
 import com.sksamuel.scrimage.nio.ImageWriter
 import org.scalatest.funspec.AnyFunSpec
 import org.scalatest.matchers.should.Matchers
@@ -90,15 +90,17 @@ class VisualizationTest extends AnyFunSpec with Matchers with ScalaCheckProperty
       }
 
       describe("with 2 refs"){
+        def px(loc: Location): (Int, Int) = (loc.lon.floor.toInt + 180, 90 - loc.lat.ceil.toInt)
+
         it("works between") {
           val image = visualize( List( Location(45.0, -90.0)->0.0, Location(-45.0, 0.0)->6.632951209392111 ),
                                  List(0.0->Color(255, 0, 0), 6.632951209392111->Color(0, 0, 255)) )
-          image.pixel(Location(0,-45)).toColor shouldBe RGBColor(128, 0, 128, 255)
+          image.pixel(px(Location(0,-45))) shouldBe Pixel(128, 0, 128, 255)
         }
         it("works on the edge") {
           val image = visualize( List((Location(45.0, -90.0), 0.0), (Location(-45.0, 0.0), 6.632951209392111)),
                                  List((0.0, Color(255, 0, 0)), (6.632951209392111, Color(0, 0, 255))) )
-          image.pixel(Location(-45.0,0.0)).toColor shouldBe RGBColor(0, 0, 255, 255)
+          image.pixel(px(Location(-45,0))) shouldBe Pixel(0, 0, 255, 255)
         }
 
         it("produces color closer to the closer ref") {
@@ -106,8 +108,8 @@ class VisualizationTest extends AnyFunSpec with Matchers with ScalaCheckProperty
             whenever(dSigma(near, x) < dSigma(far, x)) {
               val image = visualize( List(near->tNear, far->tFar),
                                      List(tNear->Color(255, 0, 0), tFar->Color(0, 255, 0)) )
-              image.pixel(x).red should beCloserTo(255).thenTo(0)
-              image.pixel(x).green should beCloserTo(0).thenTo(255)
+              image.pixel(px(x)).red should beCloserTo(255).thenTo(0)
+              image.pixel(px(x)).green should beCloserTo(0).thenTo(255)
             }
           }
         }
