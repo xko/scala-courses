@@ -122,12 +122,14 @@ class VisualizationTest extends AnyFunSpec with Matchers with ScalaCheckProperty
 
   describe("spark implementation") {
     it should behave like visualizationImpl(Visualization.SparkImpl)
-    import Visualization.SparkImpl._
-    import Extraction.SparkImpl._
+
     ignore("generates full map"){
+      import Visualization.SparkImpl._
+      import Extraction.SparkImpl._
+      import observatory.Visualization.{ImgW,ImgH,Colors}
       val refs = avgTemps( locTemps(1987, readStations("src/main/resources/stations.csv"),
                                           readTemps("src/main/resources/1987.csv")) )
-      val image = visualize(refs, Visualization.Colors)
+      val image = render(interpolate(refs, globLocations(ImgW, ImgH)), Colors, ImgW, 255)
       image.output("target/full.png")(ImageWriter.default)
 
     }

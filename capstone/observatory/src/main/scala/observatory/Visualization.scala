@@ -115,23 +115,24 @@ object Visualization extends VisualizationInterface {
     def interpolate(refs: Dataset[(Location, Temperature)], targets: Dataset[Location]): Dataset[(Location, Temperature)] =
       targets.select(asNamed[Location]($"lat", $"lon").as("loc"))
         .crossJoin(refs).groupBy($"loc")
-        .agg(tempIDW($"loc", $"_1", $"_2")).asNamed
+        .agg(tempIDW($"loc", $"_1", $"_2")).asNamed[(Location,Temperature)]
+        .sort($"_1.lat".desc, $"_1.lon")
 
-    def visualize(refs: Dataset[(Location, Temperature)], colors: Iterable[(Temperature, Color)]): Image = {
-      val lat = lit(90d) - floor($"id" / lit(ImgW))
-      val lon = $"id" % lit(ImgW) - lit(180d)
-      val locs = spark.range(0, ImgW * ImgH).select(lat, lon).asNamed[Location]
-      val temps = interpolate(refs, locs) //.sort($"_1.lat".desc, $"_1.lon")
-      val img = Image(ImgW, ImgH)
-      temps.map { case (loc, temp) => (loc, interpolateColor(colors, temp)) }
-        .collect().foreach { case (loc: Location, c: Color) =>
-        img.setPixel(loc.lon.round.toInt + 180, 90 - loc.lat.round.toInt, Pixel(c.red, c.green, c.blue, 255))
-      }
-      img
+    def render( temps: Dataset[(Location, Temperature)], colors: Iterable[(Temperature, Color)],
+                width: Int, alpha:Int ): Image = {
+      def toPx(c:Color) = Pixel(c.red,c.green,c.blue,alpha)
+      val pixels = temps.map { case (_, temp) => interpolateColor(colors, temp) }.collect().map(toPx)
+      Image(width, pixels.length / width, pixels)
+    }
+
+    def globLocations(pxWidth: Int, pxHeight: Int): Dataset[Location] = {
+      val lat = lit(90d) - floor($"id" / lit(pxWidth))
+      val lon = $"id" % lit(pxWidth) - lit(180d)
+      spark.range(0, pxWidth * pxHeight).select(lat, lon).asNamed[Location]
     }
 
     def visualize(refs: Iterable[(Location, Temperature)], colors: Iterable[(Temperature, Color)]): Image =
-      visualize(refs.toSeq.toDS(), colors)
+      render(interpolate(refs.toSeq.toDS(), globLocations(ImgW, ImgH)), colors, ImgW, 255)
 
     def predictTemperature(refs: Iterable[(Location, Temperature)], target: Location): Temperature =
       interpolate(refs.toSeq.toDS(), List(target).toDS()).collect().head._2
