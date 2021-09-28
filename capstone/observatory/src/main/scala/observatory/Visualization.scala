@@ -16,7 +16,7 @@ object Visualization extends VisualizationInterface {
                      (0d,Color(0,255,255)), (12d, Color(255,255,0)), (32d,Color(255,0,0)), (60d,Color(255,255,255)))
 
   val BigR = 6371.0088
-  val P = 2
+  val P = 4
 
   def dSigma(aLat: Double, aLon: Double, bLat: Double, bLon: Double): Double = {
     import math._

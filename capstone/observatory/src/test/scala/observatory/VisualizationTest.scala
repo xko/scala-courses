@@ -40,7 +40,7 @@ class VisualizationTest extends AnyFunSpec with Matchers with ScalaCheckProperty
         impl.predictTemperature( List(Location(52.39203305441807, 13.090866701525755)->75,
                                       Location(52.756102500413114, 13.750213841183095)->101,
                                       Location(52.23623375478595, 13.955751077705838)->16  ),
-                                      Location(52.4586444832789, 13.57802892835192) ) shouldBe (64.0 +- 1)
+                                      Location(52.4586444832789, 13.57802892835192) ) shouldBe (64.0 +- 2)
       }
       it("works on 1 ref") {
         impl.predictTemperature( Array( Location(0.0, 0.0)->10.0 ), Location(90.0, -180.0) ) shouldBe 10.0
