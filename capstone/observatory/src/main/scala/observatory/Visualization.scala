@@ -3,7 +3,6 @@ package observatory
 import com.sksamuel.scrimage.{Image, Pixel}
 
 import scala.annotation.tailrec
-import scala.collection.SortedMap
 
 /**
   * 2nd milestone: basic visualization
@@ -43,17 +42,18 @@ object Visualization extends VisualizationInterface {
     * @return The color that corresponds to `value`, according to the color scale defined by `points`
     */
   def interpolateColor(points: Iterable[(Temperature, Color)], value: Temperature): Color = {
-    def ipl(x: Double, xl: Double, yl: Double, xh: Double, yh: Double) = (yl*(xh-x) + yh*(x-xl))/(xh-xl)
-    val t = SortedMap(points.toSeq:_*)
-    val (before,after) = (t.until(value), t.from(value))
-    if (before.isEmpty) after.head._2
-    else if (after.isEmpty) before.last._2
-    else if (after.head._1 == value) after.head._2
-    else {
-      val ((tl,cl),(th,ch)) = (before.last,after.head)
-      Color( ipl(value, tl, cl.red, th, ch.red).round.toInt,
-             ipl(value, tl, cl.green, th, ch.green).round.toInt,
-             ipl(value, tl, cl.blue, th, ch.blue).round.toInt )
+    import scala.collection.Searching._
+    def linear(x: Double, x0: Double, y0: Double, x1: Double, y1: Double) = (y0*(x1-x) + y1*(x-x0))/(x1-x0)
+    val (temps,colors) = points.toIndexedSeq.sortBy(_._1).unzip
+    temps.search(value) match {
+      case Found(i) => colors(i)
+      case InsertionPoint(i) if i == temps.length => colors.last
+      case InsertionPoint(i) if i == 0 => colors.head
+      case InsertionPoint(i) =>
+        val (t0,c0,t1,c1) = (temps(i-1),colors(i-1),temps(i),colors(i))
+        Color( linear(value, t0, c0.red,   t1, c1.red).round.toInt,
+               linear(value, t0, c0.green, t1, c1.green).round.toInt,
+               linear(value, t0, c0.blue,  t1, c1.blue).round.toInt )
     }
   }
 
@@ -121,7 +121,8 @@ object Visualization extends VisualizationInterface {
     def render( temps: Dataset[(Location, Temperature)], colors: Iterable[(Temperature, Color)],
                 width: Int, alpha:Int ): Image = {
       def toPx(c:Color) = Pixel(c.red,c.green,c.blue,alpha)
-      val pixels = temps.map { case (_, temp) => interpolateColor(colors, temp) }.collect().map(toPx)
+      val colr = udf { temp: Double => Visualization.interpolateColor(colors,temp) }
+      val pixels = temps.select(colr($"_2").as[Color]).collect().map(toPx)
       Image(width, pixels.length / width, pixels)
     }
 
