@@ -15,7 +15,23 @@ case class Location(lat: Double, lon: Double)
   * @param y Y coordinate of the tile
   * @param zoom Zoom level, 0 ≤ zoom ≤ 19
   */
-case class Tile(x: Int, y: Int, zoom: Int)
+case class Tile(x: Int, y: Int, zoom: Int){
+  import scala.math._
+  lazy val perAxis: Int = 1 << zoom
+  lazy val loc: Location = Location( toDegrees(atan(sinh(Pi * (1 - 2 * y.toDouble / perAxis)))),
+                                     360 * x.toDouble / perAxis - 180 )
+
+  def subTile(dx: Int, dy: Int, dzoom: Int): Tile = Tile( (x << dzoom) + dx, (y << dzoom) + dy,
+                                                          zoom + dzoom )
+
+  def zoomIn(dzoom:Int): Seq[Tile] = for {
+    dx<-0 until  1 << dzoom
+    dy<-0 until  1 << dzoom
+  } yield subTile(dx, dy, dzoom)
+
+  def pixLocs: Seq[Location] = zoomIn(8).map(_.loc)
+
+}
 
 /**
   * Introduced in Week 4. Represents a point on a grid composed of

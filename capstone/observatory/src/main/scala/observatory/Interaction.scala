@@ -11,9 +11,7 @@ object Interaction extends InteractionInterface {
     * @param tile Tile coordinates
     * @return The latitude and longitude of the top-left corner of the tile, as per http://wiki.openstreetmap.org/wiki/Slippy_map_tilenames
     */
-  def tileLocation(tile: Tile): Location = {
-    ???
-  }
+  def tileLocation(tile: Tile): Location = tile.loc
 
   /**
     * @param temperatures Known temperatures
@@ -22,6 +20,10 @@ object Interaction extends InteractionInterface {
     * @return A 256×256 image showing the contents of the given tile
     */
   def tile(temperatures: Iterable[(Location, Temperature)], colors: Iterable[(Temperature, Color)], tile: Tile): Image = {
+//    import Visualization.SparkImpl._
+//    import Spark.spark.implicits._
+//    render( interpolate( temperatures.toSeq.toDS(), tile.pixLocs.toDS() ),
+//            colors, 256, 127 )
     ???
   }
 
@@ -36,7 +38,13 @@ object Interaction extends InteractionInterface {
     yearlyData: Iterable[(Year, Data)],
     generateImage: (Year, Tile, Data) => Unit
   ): Unit = {
-    ???
+    yearlyData.foreach{ case (y,d) =>
+      val t = Tile(0,0,0)
+      generateImage(y,t,d)
+      t.zoomIn(1).foreach(generateImage(y, _, d))
+      t.zoomIn(2).foreach(generateImage(y, _, d))
+      t.zoomIn(3).foreach(generateImage(y, _, d))
+    }
   }
 
 }
