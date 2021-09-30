@@ -2,7 +2,7 @@ package observatory
 
 import com.sksamuel.scrimage.{Image, Pixel}
 
-import scala.annotation.tailrec
+import scala.collection.parallel.ParIterable
 
 /**
   * 2nd milestone: basic visualization
@@ -34,7 +34,27 @@ object Visualization extends VisualizationInterface {
     * @return The predicted temperature at `location`
     */
   def predictTemperature(temperatures: Iterable[(Location, Temperature)], location: Location): Temperature =
-    SparkImpl.predictTemperature(temperatures,location)
+    pPredictTemperature(temperatures.par, location)
+
+  def pPredictTemperature(refs: ParIterable[(Location, Temperature)], target: Location): Temperature = {
+    val (num,den) = refs.aggregate(0.0->0.0)(
+      (agg,ref) => (agg,ref) match {
+        case ((num,den),(refLoc,refTemp)) =>
+          val gcd = dSigma(refLoc, target) * BigR
+          if(gcd < 1) (refTemp,-1)
+          else {
+            val w = 1 / math.pow(gcd, P)
+            (num + w*refTemp, den + w)
+          }
+      },
+      (agg,bgg) => (agg,bgg) match {
+        case ((exact, -1),(_,_)) =>(exact,1)
+        case ((_,_),(exact, -1)) => (exact,1)
+        case ((n1,d1),(n2,d2)) => (n1+n2,d1+d2)
+      } )
+    num / den
+  }
+
 
   /**
     * @param points Pairs containing a value and its associated color
@@ -63,83 +83,17 @@ object Visualization extends VisualizationInterface {
     * @return A 360×180 image where each pixel shows the predicted temperature at its location
     */
   def visualize(temperatures: Iterable[(Location, Temperature)], colors: Iterable[(Temperature, Color)]): Image =
-    SparkImpl.visualize(temperatures, colors)
+    render(globLocations(ImgW,ImgH),temperatures,colors,ImgW,255)
 
-  object PlainImpl extends VisualizationInterface  {
-    def predictTemperature(refs: Iterable[(Location, Temperature)], target: Location): Temperature = {
-      @tailrec
-      def sums(temps: Stream[(Location, Temperature)], num: Double, den: Double):(Double,Double) = temps match {
-        case Stream.Empty => (num,den)
-        case (refLoc,refTemp) #:: tail =>
-          val gcd = dSigma(refLoc, target) * BigR
-          if(gcd < 1) (refTemp,1)
-          else {
-            val w = 1 / math.pow(gcd, P)
-            sums(tail, num + w*refTemp, den + w)
-          }
-      }
-      val (num,den) = sums(refs.toStream, 0, 0)
-      num/den
-    }
-
-    def visualize(refs: Iterable[(Location, Temperature)], colors: Iterable[(Temperature, Color)]): Image = {
-      Image(ImgW, ImgH).map { (x, y, _) =>
-        val c = interpolateColor(colors, predictTemperature(refs, Location(90 - y, x - 180)))
-        Pixel(c.red, c.green, c.blue, 255)
-      }
-    }
-
-    def interpolateColor(points: Iterable[(Temperature, Color)], value: Temperature): Color =
-      Visualization.interpolateColor(points,value)
+  def render( locs: Iterable[Location], refs: Iterable[(Location,Temperature)],
+              colors: Iterable[(Temperature, Color)], width: Int, alpha:Int ): Image = {
+    def toPx(c:Color) = Pixel(c.red,c.green,c.blue,alpha)
+    val pRefs = refs.par
+    val pixels = locs.par map (pPredictTemperature(pRefs, _)) map (temp => toPx(interpolateColor(colors, temp)))
+    Image(width, pixels.size / width, pixels.toArray)
   }
 
-  object SparkImpl extends VisualizationInterface {
+  def globLocations(pxWidth: Int, pxHeight: Int): Iterable[Location] =
+    for (y <- 0 until pxHeight; x<- 0 until pxWidth) yield Location(90-y, x-180)
 
-    import org.apache.spark.sql._
-    import org.apache.spark.sql.functions._
-    import org.apache.spark.sql.expressions.UserDefinedFunction
-
-    import Spark._
-    import spark.implicits._
-
-    val gcDistance: UserDefinedFunction = udf { (aLoc: Row, bLoc: Row) =>
-      dSigma(aLoc.getDouble(0), aLoc.getDouble(1), bLoc.getDouble(0), bLoc.getDouble(1)) * BigR
-    }
-
-    def tempIDW(targetLoc: Column, refLoc: Column, temp: Column): Column = {
-      val w = lit(1) / pow(gcDistance(targetLoc, refLoc), lit(P))
-      val exact = first(when(gcDistance(refLoc, targetLoc) < 1, temp), ignoreNulls = true)
-      when(isnull(exact), sum(w * temp) / sum(w)).otherwise(exact)
-    }
-
-    def interpolate(refs: Dataset[(Location, Temperature)], targets: Dataset[Location]): Dataset[(Location, Temperature)] =
-      targets.select(asNamed[Location]($"lat", $"lon").as("loc"))
-        .crossJoin(refs).groupBy($"loc")
-        .agg(tempIDW($"loc", $"_1", $"_2")).asNamed[(Location,Temperature)]
-        .sort($"_1.lat".desc, $"_1.lon")
-
-    def render( temps: Dataset[(Location, Temperature)], colors: Iterable[(Temperature, Color)],
-                width: Int, alpha:Int ): Image = {
-      def toPx(c:Color) = Pixel(c.red,c.green,c.blue,alpha)
-      val colr = udf { temp: Double => Visualization.interpolateColor(colors,temp) }
-      val pixels = temps.select(colr($"_2").as[Color]).collect().map(toPx)
-      Image(width, pixels.length / width, pixels)
-    }
-
-    def globLocations(pxWidth: Int, pxHeight: Int): Dataset[Location] = {
-      val lat = lit(90d) - floor($"id" / lit(pxWidth))
-      val lon = $"id" % lit(pxWidth) - lit(180d)
-      spark.range(0, pxWidth * pxHeight).select(lat, lon).asNamed[Location]
-    }
-
-    def visualize(refs: Iterable[(Location, Temperature)], colors: Iterable[(Temperature, Color)]): Image =
-      render(interpolate(refs.toSeq.toDS(), globLocations(ImgW, ImgH)), colors, ImgW, 255)
-
-    def predictTemperature(refs: Iterable[(Location, Temperature)], target: Location): Temperature =
-      interpolate(refs.toSeq.toDS(), List(target).toDS()).collect().head._2
-
-    def interpolateColor(points: Iterable[(Temperature, Color)], value: Temperature): Color =
-      Visualization.interpolateColor(points,value)
-
-  }
 }

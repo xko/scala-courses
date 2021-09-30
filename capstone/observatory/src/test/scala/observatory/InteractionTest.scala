@@ -1,5 +1,6 @@
 package observatory
 
+import observatory.Extraction.{locateTemperatures, locationYearlyAverageRecords}
 import org.scalatest.funspec.AnyFunSpec
 import org.scalatest.matchers.should.Matchers
 import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
@@ -22,28 +23,20 @@ class InteractionTest extends AnyFunSpec with Matchers with ScalaCheckPropertyCh
 
   describe("image generation"){
     import com.sksamuel.scrimage.nio.ImageWriter
-    import observatory.Extraction.SparkImpl._
-    import observatory.Visualization.SparkImpl._
-
-    import org.apache.spark.sql.Dataset
-    import Spark.spark.implicits._
     import java.nio.file.{Paths,Files}
 
-
-    def img(year: Year, refs: Dataset[(Location, Temperature)])(tile: Tile) = {
-      val image = render(interpolate(refs, tile.pixLocs.toDS()), Visualization.Colors, 256, 127)
+    def img(year: Year, refs: Iterable[(Location, Temperature)])(tile: Tile) = {
+      val image = Visualization.visualize(refs, Visualization.Colors)
       val path = Paths.get(s"target/temperatures/$year/${tile.zoom}/${tile.x}-${tile.y}.png")
       Files.createDirectories(path.getParent)
       image.output(path)(ImageWriter.default)
     }
 
     ignore("generates 2015 zoom 0"){
-      val stations = readStations("src/main/resources/stations.csv")
-      stations.persist()
-      val year = 2015
-      val refs = avgTemps(locTemps(year, stations, readTemps("src/main/resources/2015.csv")))
-      refs.persist()
-      img(year,refs)(Tile(0,0,0))
+      val ye = 2015
+      val temps = locateTemperatures(ye, "src/main/resources/stations.csv", s"src/main/resources/$ye.csv")
+      val refs: Iterable[(Location, Temperature)] = locationYearlyAverageRecords(temps)
+      img(ye,refs)(Tile(0,0,0))
     }
 
 
