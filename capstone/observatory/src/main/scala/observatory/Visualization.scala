@@ -9,8 +9,6 @@ import scala.collection.parallel.ParIterable
   */
 object Visualization extends VisualizationInterface {
 
-  val ImgW = 360
-  val ImgH = 180
   val Colors = List( (-60d,Color(0,0,0)), (-50d,Color(33,0,107)), (-27d,Color(255,0,255)), (-15d,Color(0,0,255)),
                      (0d,Color(0,255,255)), (12d, Color(255,255,0)), (32d,Color(255,0,0)), (60d,Color(255,255,255)))
 
@@ -37,22 +35,19 @@ object Visualization extends VisualizationInterface {
     pPredictTemperature(temperatures.par, location)
 
   def pPredictTemperature(refs: ParIterable[(Location, Temperature)], target: Location): Temperature = {
-    val (num,den) = refs.aggregate(0.0->0.0)(
-      (agg,ref) => (agg,ref) match {
-        case ((num,den),(refLoc,refTemp)) =>
-          val gcd = dSigma(refLoc, target) * BigR
-          if(gcd < 1) (refTemp,-1)
-          else {
-            val w = 1 / math.pow(gcd, P)
-            (num + w*refTemp, den + w)
-          }
-      },
-      (agg,bgg) => (agg,bgg) match {
-        case ((exact, -1),(_,_)) =>(exact,1)
-        case ((_,_),(exact, -1)) => (exact,1)
-        case ((n1,d1),(n2,d2)) => (n1+n2,d1+d2)
-      } )
-    num / den
+    val gcds = refs.map { case (loc, temp) => (dSigma(loc, target) * BigR, temp)  }
+    gcds.find(_._1 < 1).map(_._2).getOrElse {
+      val (num, den) = gcds.aggregate(0.0 -> 0.0)(
+        (agg, ref) => (agg, ref) match {
+          case ((num, den), (gcd, temp)) =>
+              val w = 1 / math.pow(gcd, P)
+              (num + w * temp, den + w)
+        },
+        (agg, bgg) => (agg, bgg) match {
+          case ((n1, d1), (n2, d2)) => (n1 + n2, d1 + d2)
+        })
+      num / den
+    }
   }
 
 
@@ -83,17 +78,29 @@ object Visualization extends VisualizationInterface {
     * @return A 360×180 image where each pixel shows the predicted temperature at its location
     */
   def visualize(temperatures: Iterable[(Location, Temperature)], colors: Iterable[(Temperature, Color)]): Image =
-    render(globLocations(ImgW,ImgH),temperatures,colors,ImgW,255)
+    render(
+      for(y <- 0 until 180; x <- 0 until 360) yield Location(90 - y, x - 180),
+      temperatures, colors,
+      360, 255 )
 
-  def render( locs: Iterable[Location], refs: Iterable[(Location,Temperature)],
-              colors: Iterable[(Temperature, Color)], width: Int, alpha:Int ): Image = {
+  def render(locs: Iterable[Location], refs: Iterable[(Location,Temperature)],
+             colors: Iterable[(Temperature, Color)], width: Int, alpha:Int ): Image = {
     def toPx(c:Color) = Pixel(c.red,c.green,c.blue,alpha)
     val pRefs = refs.par
     val pixels = locs.par map (pPredictTemperature(pRefs, _)) map (temp => toPx(interpolateColor(colors, temp)))
     Image(width, pixels.size / width, pixels.toArray)
   }
 
-  def globLocations(pxWidth: Int, pxHeight: Int): Iterable[Location] =
-    for (y <- 0 until pxHeight; x<- 0 until pxWidth) yield Location(90-y, x-180)
+  def visualizeMemOpt(refs: Iterable[(Location, Temperature)], colors: Iterable[(Temperature, Color)]): Image = {
+    val img = Image(360, 180)
+    val pRefs = refs.par
+    for (y <- 0 until 180; x <- 0 until 360) {
+      val t = pPredictTemperature(pRefs, Location(90 - y, x - 180))
+      val c = interpolateColor(colors, t)
+      img.setPixel(x, y, Pixel(c.red, c.green, c.blue, 255))
+    }
+    img
+  }
+
 
 }
