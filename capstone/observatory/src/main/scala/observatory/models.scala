@@ -25,8 +25,8 @@ case class Tile(x: Int, y: Int, zoom: Int){
                                                           zoom + dzoom )
 
   def zoomIn(dzoom:Int): Seq[Tile] = for {
-    dx<-0 until  1 << dzoom
     dy<-0 until  1 << dzoom
+    dx<-0 until  1 << dzoom
   } yield subTile(dx, dy, dzoom)
 
   def pixLocs: Seq[Location] = zoomIn(8).map(_.loc)

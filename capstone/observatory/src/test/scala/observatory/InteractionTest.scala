@@ -1,6 +1,5 @@
 package observatory
 
-import observatory.Extraction.{locateTemperatures, locationYearlyAverageRecords}
 import org.scalatest.funspec.AnyFunSpec
 import org.scalatest.matchers.should.Matchers
 import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
@@ -24,9 +23,11 @@ class InteractionTest extends AnyFunSpec with Matchers with ScalaCheckPropertyCh
   describe("image generation"){
     import com.sksamuel.scrimage.nio.ImageWriter
     import java.nio.file.{Paths,Files}
+    import observatory.Extraction.{locateTemperatures, locationYearlyAverageRecords}
+    import observatory.Visualization.{Colors, render}
 
     def img(year: Year, refs: Iterable[(Location, Temperature)])(tile: Tile) = {
-      val image = Visualization.visualize(refs, Visualization.Colors)
+      val image = render(tile.pixLocs, refs, Colors, 256, 127)
       val path = Paths.get(s"target/temperatures/$year/${tile.zoom}/${tile.x}-${tile.y}.png")
       Files.createDirectories(path.getParent)
       image.output(path)(ImageWriter.default)
@@ -37,6 +38,21 @@ class InteractionTest extends AnyFunSpec with Matchers with ScalaCheckPropertyCh
       val temps = locateTemperatures(ye, "src/main/resources/stations.csv", s"src/main/resources/$ye.csv")
       val refs: Iterable[(Location, Temperature)] = locationYearlyAverageRecords(temps)
       img(ye,refs)(Tile(0,0,0))
+    }
+
+    ignore("generates 2015 zoom 1-2"){
+      val ye = 2015
+      val temps = locateTemperatures(ye, "src/main/resources/stations.csv", s"src/main/resources/$ye.csv")
+      val refs: Iterable[(Location, Temperature)] = locationYearlyAverageRecords(temps)
+      Tile(0,0,0).zoomIn(1).foreach(img(ye,refs))
+      Tile(0,0,0).zoomIn(2).foreach(img(ye,refs))
+    }
+
+    ignore("generates 2015 zoom 3"){
+      val ye = 2015
+      val temps = locateTemperatures(ye, "src/main/resources/stations.csv", s"src/main/resources/$ye.csv")
+      val refs: Iterable[(Location, Temperature)] = locationYearlyAverageRecords(temps)
+      Tile(0,0,0).zoomIn(3).foreach(img(ye,refs))
     }
 
 

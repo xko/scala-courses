@@ -78,10 +78,9 @@ object Visualization extends VisualizationInterface {
     * @return A 360×180 image where each pixel shows the predicted temperature at its location
     */
   def visualize(temperatures: Iterable[(Location, Temperature)], colors: Iterable[(Temperature, Color)]): Image =
-    render(
-      for(y <- 0 until 180; x <- 0 until 360) yield Location(90 - y, x - 180),
-      temperatures, colors,
-      360, 255 )
+    render( for (y <- 0 until 180; x <- 0 until 360) yield Location(90 - y, x - 180),
+            temperatures, colors,
+            360, 255 )
 
   def render(locs: Iterable[Location], refs: Iterable[(Location,Temperature)],
              colors: Iterable[(Temperature, Color)], width: Int, alpha:Int ): Image = {
