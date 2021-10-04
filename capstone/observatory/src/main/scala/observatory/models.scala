@@ -39,7 +39,10 @@ case class Tile(x: Int, y: Int, zoom: Int){
   * @param lat Circle of latitude in degrees, -89 ≤ lat ≤ 90
   * @param lon Line of longitude in degrees, -180 ≤ lon ≤ 179
   */
-case class GridLocation(lat: Int, lon: Int)
+case class GridLocation(lat: Int, lon: Int) {
+  lazy val loc: Location = Location(lat, lon)
+  lazy val i: Int = (lat+89)*360 + (lon+180)
+}
 
 /**
   * Introduced in Week 5. Represents a point inside of a grid cell.
