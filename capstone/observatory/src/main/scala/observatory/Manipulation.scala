@@ -23,7 +23,7 @@ object Manipulation extends ManipulationInterface {
   }
 
   private def pMakeGrid(pRefs: ParIterable[(Location, Temperature)]): ParArray[Temperature] = {
-    grid map (gloc => pPredictTemperature(pRefs, gloc.loc))
+    grid map (gloc => pPredictTemperature(pRefs)(gloc.loc))
   }
 
   private def average[T : Numeric](vs: Iterable[T]) = {

@@ -1,7 +1,7 @@
 package observatory
 
 import com.sksamuel.scrimage.Image
-import observatory.Visualization.{Colors, render}
+import observatory.Visualization.{Colors, pPredictTemperature, render}
 
 /**
   * 3rd milestone: interactive visualization
@@ -21,7 +21,7 @@ object Interaction extends InteractionInterface {
     * @return A 256×256 image showing the contents of the given tile
     */
   def tile(temperatures: Iterable[(Location, Temperature)], colors: Iterable[(Temperature, Color)], tile: Tile): Image =
-    render(tile.pixLocs, temperatures, Colors, 256, 127)
+    render(tile.pixLocs, Colors, 256, 127)(pPredictTemperature(temperatures.par))
 
   /**
     * Generates all the tiles for zoom levels 0 to 3 (included), for all the given years.

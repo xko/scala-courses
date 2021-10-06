@@ -23,12 +23,12 @@ class InteractionTest extends AnyFunSpec with Matchers with ScalaCheckPropertyCh
   describe("image generation"){
     import com.sksamuel.scrimage.nio.ImageWriter
     import java.nio.file.{Paths,Files}
-    import observatory.Extraction.{locateTemperatures, locationYearlyAverageRecords}
-    import observatory.Visualization.{Colors, render}
+    import Extraction.{locateTemperatures, locationYearlyAverageRecords}
+    import Interaction.tile
 
-    def img(year: Year, refs: Iterable[(Location, Temperature)])(tile: Tile) = {
-      val image = render(tile.pixLocs, refs, Colors, 256, 127)
-      val path = Paths.get(s"target/temperatures/$year/${tile.zoom}/${tile.x}-${tile.y}.png")
+    def img(year: Year, refs: Iterable[(Location, Temperature)])(t: Tile) = {
+      val image = tile(refs, Visualization.Colors, t)
+      val path = Paths.get(s"target/temperatures/$year/${t.zoom}/${t.x}-${t.y}.png")
       Files.createDirectories(path.getParent)
       image.output(path)(ImageWriter.default)
     }

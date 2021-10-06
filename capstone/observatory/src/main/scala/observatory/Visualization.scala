@@ -32,9 +32,9 @@ object Visualization extends VisualizationInterface {
     * @return The predicted temperature at `location`
     */
   def predictTemperature(temperatures: Iterable[(Location, Temperature)], location: Location): Temperature =
-    pPredictTemperature(temperatures.par, location)
+    pPredictTemperature(temperatures.par)(location)
 
-  def pPredictTemperature(refs: ParIterable[(Location, Temperature)], target: Location): Temperature = {
+  def pPredictTemperature(refs: ParIterable[(Location, Temperature)])(target: Location): Temperature = {
     val gcds = refs.map { case (loc, temp) => (dSigma(loc, target) * BigR, temp)  }
     gcds.find(_._1 < 1).map(_._2).getOrElse {
       val (num, den) = gcds.aggregate(0.0 -> 0.0)(
@@ -79,22 +79,21 @@ object Visualization extends VisualizationInterface {
     */
   def visualize(temperatures: Iterable[(Location, Temperature)], colors: Iterable[(Temperature, Color)]): Image =
     render( for (y <- 0 until 180; x <- 0 until 360) yield Location(90 - y, x - 180),
-            temperatures, colors,
-            360, 255 )
+            colors, 360, 255 )(pPredictTemperature(temperatures.par))
 
-  def render(locs: Iterable[Location], refs: Iterable[(Location,Temperature)],
-             colors: Iterable[(Temperature, Color)], width: Int, alpha:Int ): Image = {
+
+  def render( locs: Iterable[Location], colors: Iterable[(Temperature, Color)], width: Int, alpha:Int )
+            ( predict: Location => Temperature ): Image = {
     def toPx(c:Color) = Pixel(c.red,c.green,c.blue,alpha)
-    val pRefs = refs.par
-    val pixels = locs.par map (pPredictTemperature(pRefs, _)) map (temp => toPx(interpolateColor(colors, temp)))
+    val pixels = locs.par map predict map (temp => toPx(interpolateColor(colors, temp)))
     Image(width, pixels.size / width, pixels.toArray)
   }
 
   def visualizeMemOpt(refs: Iterable[(Location, Temperature)], colors: Iterable[(Temperature, Color)]): Image = {
     val img = Image(360, 180)
-    val pRefs = refs.par
+    val predict = pPredictTemperature(refs.par) _
     for (y <- 0 until 180; x <- 0 until 360) {
-      val t = pPredictTemperature(pRefs, Location(90 - y, x - 180))
+      val t = predict(Location(90 - y, x - 180))
       val c = interpolateColor(colors, t)
       img.setPixel(x, y, Pixel(c.red, c.green, c.blue, 255))
     }
