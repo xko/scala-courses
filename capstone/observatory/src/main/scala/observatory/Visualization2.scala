@@ -6,6 +6,9 @@ import com.sksamuel.scrimage.{Image, Pixel}
   * 5th milestone: value-added information visualization
   */
 object Visualization2 extends Visualization2Interface {
+  val Colors = List( (-7.0,Color(0,0,255)),  (-2.0,Color(0,255,255)), (0.0,Color(255,255,255)),
+                     (2.0,Color(255,255,0)), (4.0,Color(255,0,0)),    (7.0, Color(0,0,0))         )
+
 
   /**
     * @param point (x, y) coordinates of a point in the grid cell
@@ -22,9 +25,8 @@ object Visualization2 extends Visualization2Interface {
     d01: Temperature,
     d10: Temperature,
     d11: Temperature
-  ): Temperature = {
-    ???
-  }
+  ): Temperature = d00*(1-point.x)*(1-point.y) + d10*point.x*(1-point.y)+
+                   d01*(1-point.x)*point.y     + d11*point.x*point.y
 
   /**
     * @param grid Grid to visualize
@@ -37,7 +39,15 @@ object Visualization2 extends Visualization2Interface {
     colors: Iterable[(Temperature, Color)],
     tile: Tile
   ): Image = {
-    ???
+    Visualization.render(tile.pixLocs,Colors,256,127) { l =>
+      val g00 = GridLocation(l.lat.floor.toInt, l.lon.floor.toInt).normalize
+      val g01 = GridLocation(l.lat.floor.toInt, l.lon.ceil.toInt).normalize
+      val g10 = GridLocation(l.lat.ceil.toInt,  l.lon.floor.toInt).normalize
+      val g11 = GridLocation(l.lat.ceil.toInt,  l.lon.ceil.toInt).normalize
+      bilinearInterpolation( CellPoint(l.lat - l.lat.floor,l.lon - l.lon.floor),
+                             grid(g00),grid(g01),grid(g10),grid(g11) )
+
+    }
   }
 
 }

@@ -42,6 +42,13 @@ case class Tile(x: Int, y: Int, zoom: Int){
 case class GridLocation(lat: Int, lon: Int) {
   lazy val loc: Location = Location(lat, lon)
   lazy val i: Int = (lat+89)*360 + (lon+180)
+
+  def normalize: GridLocation = (lat,lon) match {
+    case (-90,lon) if lon>=0 => GridLocation(-89,lon - 180)
+    case (-90,lon)           => GridLocation(-89,lon + 180)
+    case (lat,180)           => GridLocation(lat,-180)
+    case (lat,lon)           => GridLocation(lat,lon)
+  }
 }
 
 /**
