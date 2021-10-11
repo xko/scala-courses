@@ -16,12 +16,13 @@ object Main extends App {
     image.output(path)(ImageWriter.default)
   }
 
-  val ye = 1976
+  val ye = args(0).toInt
 
   val temps = locateTemperatures(ye, "src/main/resources/stations.csv", s"src/main/resources/$ye.csv")
   val refs: Iterable[(Location, Temperature)] = locationYearlyAverageRecords(temps)
   img(ye,refs)(Tile(0,0,0))
   Tile(0,0,0).zoomIn(1).foreach(img(ye,refs))
-  Tile(0,0,0).zoomIn(2).foreach(img(ye,refs))
+//  Tile(0,0,0).zoomIn(2).foreach(img(ye,refs))
+//  Tile(0,0,0).zoomIn(3).foreach(img(ye,refs))
 
 }
