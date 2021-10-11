@@ -1,5 +1,9 @@
 package observatory
 
+import Visualization._
+import Interaction._
+import com.sksamuel.scrimage.RGBColor
+import com.sksamuel.scrimage.nio.ImageWriter
 import org.scalatest.funspec.AnyFunSpec
 import org.scalatest.matchers.should.Matchers
 import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
@@ -17,6 +21,26 @@ class InteractionTest extends AnyFunSpec with Matchers with ScalaCheckPropertyCh
     they("divide correctly"){
       Tile(1072, 661, 11).subTile(0,0,1)  shouldBe Tile(2144,1322,12)
       Tile(1072, 661, 11).subTile(6,3,2)  shouldBe Tile(4294,2647,13)
+    }
+
+    describe("top left corner") {
+      val x = Location(85.0511287798066,-180.0)
+
+      it("converts to lat/lon correctly"){
+        Tile(0, 0, 0).loc shouldBe x
+        Tile(0, 0, 1).loc shouldBe x
+        Tile(0, 0, 2).loc shouldBe x
+        Tile(0, 0, 3).loc shouldBe x
+      }
+
+      it("pixelates correctly"){
+        Tile(0,0,0).pixLocs.head shouldBe x
+        Tile(0,0,1).pixLocs.head shouldBe x
+        Tile(0,0,2).pixLocs.head shouldBe x
+        Tile(0,0,3).pixLocs.head shouldBe x
+        Tile(0,0,300).pixLocs.head shouldBe x
+      }
+
     }
   }
 
