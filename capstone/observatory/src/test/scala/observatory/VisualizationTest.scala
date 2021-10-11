@@ -67,9 +67,25 @@ class VisualizationTest extends AnyFunSpec with Matchers with ScalaCheckProperty
   }
 
     describe("color interpolation") {
-      it("works on some points") {
+      it("works on 3 particular refs") {
         val color = interpolateColor( List(1.0->Color(255, 0, 0), 2.0->Color(0, 0, 255), 3.0->Color(0, 255, 0)), 1.5 )
         color shouldBe Color(128, 0, 128)
+      }
+      it("works on 2 far apart refs"){
+        val c = interpolateColor(List(1.5937842330603102E210 -> Color(255, 0, 0), -0.260475835897054 -> Color(0, 255, 0)),
+                                      1.5776989721396933E210)
+        c.red should beCloserTo(255).thenTo(0)
+        c.green should beCloserTo(0).thenTo(255)
+      }
+      it("works on 2 arbitrary refs") {
+        import org.scalacheck.Shrink.shrinkAny
+        forAll { (tNear: Temperature, tFar: Temperature, t: Temperature) =>
+          whenever((tNear - t).abs < (tFar - t).abs) {
+            val c = interpolateColor(List(tNear->Color(255, 0, 0), tFar->Color(0, 255, 0)),t)
+            c.red should beCloserTo(255).thenTo(0)
+            c.green should beCloserTo(0).thenTo(255)
+          }
+        }
       }
     }
 
