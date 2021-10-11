@@ -38,16 +38,16 @@ object Visualization2 extends Visualization2Interface {
     grid: GridLocation => Temperature,
     colors: Iterable[(Temperature, Color)],
     tile: Tile
-  ): Image = {
-    Visualization.render(tile.pixLocs,Colors,256,127) { l =>
-      val g00 = GridLocation(l.lat.floor.toInt, l.lon.floor.toInt).normalize
-      val g01 = GridLocation(l.lat.floor.toInt, l.lon.ceil.toInt).normalize
-      val g10 = GridLocation(l.lat.ceil.toInt,  l.lon.floor.toInt).normalize
-      val g11 = GridLocation(l.lat.ceil.toInt,  l.lon.ceil.toInt).normalize
-      bilinearInterpolation( CellPoint(l.lat - l.lat.floor,l.lon - l.lon.floor),
-                             grid(g00),grid(g01),grid(g10),grid(g11) )
+  ): Image = Visualization.render(tile.pixLocs, colors, 256, 127)(interpolator(grid))
 
-    }
+  def interpolator(grid: GridLocation => Temperature): Location => Temperature = {l =>
+    val (g00, g01, g10, g11) = gridAround(l)
+    bilinearInterpolation( CellPoint(l.lat - l.lat.floor, l.lon - l.lon.floor),
+                           grid(g00), grid(g01), grid(g10), grid(g11) )
   }
 
+  def gridAround(l: Location) = ( GridLocation(l.lat.floor.toInt, l.lon.floor.toInt).normalize,
+                                  GridLocation(l.lat.floor.toInt, l.lon.ceil.toInt).normalize,
+                                  GridLocation(l.lat.ceil.toInt, l.lon.floor.toInt).normalize,
+                                  GridLocation(l.lat.ceil.toInt, l.lon.ceil.toInt).normalize   )
 }
