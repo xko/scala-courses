@@ -20,12 +20,9 @@ jobs:
     - name: Generate ${{ github.event.inputs.year }} images
       working-directory: capstone/observatory
       run: sbt "run ${{ github.event.inputs.year }}"
-    - name: Package
-      working-directory: capstone/observatory
-      run: zip -r ${{ github.event.inputs.year }} target/temperatures
     - name: Publish ${{ github.event.inputs.year }}
       uses: actions/upload-artifact@v2
       with:
-        name: Tiles ${{ github.event.inputs.year }}
-        path: capstone/observatory/${{ github.event.inputs.year }}.zip
+        name: tiles-${{ github.event.inputs.year }}
+        path: capstone/observatory/temperatures
       
