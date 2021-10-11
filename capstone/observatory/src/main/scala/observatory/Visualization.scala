@@ -84,6 +84,7 @@ object Visualization extends VisualizationInterface {
 
   def render( locs: Iterable[Location], colors: Iterable[(Temperature, Color)], width: Int, alpha:Int )
             ( predict: Location => Temperature ): Image = {
+    System.gc()
     def toPx(c:Color) = Pixel(c.red,c.green,c.blue,alpha)
     val pixels = locs.par map predict map (temp => toPx(interpolateColor(colors, temp)))
     Image(width, pixels.size / width, pixels.toArray)
