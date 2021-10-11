@@ -23,6 +23,7 @@ object Manipulation extends ManipulationInterface {
   }
 
   private def pMakeGrid(pRefs: ParIterable[(Location, Temperature)]): ParArray[Temperature] = {
+    System.gc()
     grid map (gloc => pPredictTemperature(pRefs)(gloc.loc))
   }
 
