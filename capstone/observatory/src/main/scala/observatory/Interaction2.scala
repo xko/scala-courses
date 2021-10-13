@@ -1,5 +1,8 @@
 package observatory
 
+import observatory.LayerName.{Deviations, Temperatures}
+
+
 /**
   * 6th (and last) milestone: user interface polishing
   */
@@ -9,7 +12,8 @@ object Interaction2 extends Interaction2Interface {
     * @return The available layers of the application
     */
   def availableLayers: Seq[Layer] = {
-    ???
+    List(Layer(LayerName.Temperatures, Colors.temperatures, 1975 to 2015),
+         Layer(LayerName.Deviations, Colors.deviations, 1991 to 2015))
   }
 
   /**
@@ -17,7 +21,7 @@ object Interaction2 extends Interaction2Interface {
     * @return A signal containing the year bounds corresponding to the selected layer
     */
   def yearBounds(selectedLayer: Signal[Layer]): Signal[Range] = {
-    ???
+    Signal(selectedLayer().bounds)
   }
 
   /**
@@ -29,7 +33,8 @@ object Interaction2 extends Interaction2Interface {
     *         in the `selectedLayer` bounds.
     */
   def yearSelection(selectedLayer: Signal[Layer], sliderValue: Signal[Year]): Signal[Year] = {
-    ???
+    val bounds = yearBounds(selectedLayer)
+    Signal(sliderValue().max(bounds().min).min(bounds().max))
   }
 
   /**
@@ -38,7 +43,12 @@ object Interaction2 extends Interaction2Interface {
     * @return The URL pattern to retrieve tiles
     */
   def layerUrlPattern(selectedLayer: Signal[Layer], selectedYear: Signal[Year]): Signal[String] = {
-    ???
+    Signal(
+      selectedLayer().layerName match {
+        case Deviations => s"target/deviations/${selectedYear()}/{z}/{x}-{y}.png"
+        case Temperatures => s"target/temperatures/${selectedYear()}/{z}/{x}-{y}.png"
+      }
+    )
   }
 
   /**
@@ -47,7 +57,9 @@ object Interaction2 extends Interaction2Interface {
     * @return The caption to show
     */
   def caption(selectedLayer: Signal[Layer], selectedYear: Signal[Year]): Signal[String] = {
-    ???
+    Signal(
+      s"${selectedLayer().layerName.id.capitalize} (${selectedYear()})"
+    )
   }
 
 }
@@ -74,4 +86,3 @@ object LayerName {
   * @param bounds Minimum and maximum year supported by the layer
   */
 case class Layer(layerName: LayerName, colorScale: Seq[(Temperature, Color)], bounds: Range)
-

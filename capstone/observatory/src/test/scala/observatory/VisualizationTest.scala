@@ -93,7 +93,7 @@ class VisualizationTest extends AnyFunSpec with Matchers with ScalaCheckProperty
       it("writes image file") {
         val image = visualize( List( Location(-170, 80)->33, Location(170, 80)->33,
                                      Location(-170, -80)->33, Location(170, -80)->33,
-                                     Location(0, 0)-> -15 ), Colors )
+                                     Location(0, 0)-> -15 ), Colors.temperatures )
         val f = new File("target/simple.png")
         f.delete()
         image.output(f)(ImageWriter.default)
@@ -131,7 +131,7 @@ class VisualizationTest extends AnyFunSpec with Matchers with ScalaCheckProperty
         val ye = 2015
         val temps = locateTemperatures(ye, "src/main/resources/stations.csv", s"src/main/resources/$ye.csv")
         val refs: Iterable[(Location, Temperature)] = locationYearlyAverageRecords(temps)
-        val image = visualize(refs, Colors)
+        val image = visualize(refs, Colors.temperatures)
         image.output("target/full.png")(ImageWriter.default)
 
       }

@@ -20,7 +20,7 @@ object Main extends App {
       val normals = norms.getLines().map(_.toDouble).toArray
       val dev = Manipulation.deviation(temperatures(ye), gl=> normals(gl.i))
       def write = writeTile( t=> s"target/deviations/$ye/${t.zoom}/${t.x}-${t.y}.png",
-                             t=> Visualization2.visualizeGrid(dev,Visualization2.Colors,t) ) _
+                             t=> Visualization2.visualizeGrid(dev, Colors.deviations, t)) _
       write(Tile.World)
       Tile.World.zoomIn(1).foreach(write)
       Tile.World.zoomIn(2).foreach(write)
@@ -40,7 +40,7 @@ object Main extends App {
   def writeTemperatures(ye: Year): Unit = {
     val refs: Iterable[(Location, Temperature)] = temperatures(ye)
     val write = writeTile( t=> s"target/temperatures/$ye/${t.zoom}/${t.x}-${t.y}.png",
-                           t=> Interaction.tile(refs,Visualization.Colors, t) ) _
+                           t=> Interaction.tile(refs, Colors.temperatures, t)) _
     write(Tile.World)
     Tile.World.zoomIn(1).foreach(write)
     Tile.World.zoomIn(2).foreach(write)

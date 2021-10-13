@@ -1,13 +1,11 @@
 package observatory
 
-import com.sksamuel.scrimage.{Image, Pixel}
+import com.sksamuel.scrimage.Image
 
 /**
   * 5th milestone: value-added information visualization
   */
 object Visualization2 extends Visualization2Interface {
-  val Colors = List( (-7.0,Color(0,0,255)),  (-2.0,Color(0,255,255)), (0.0,Color(255,255,255)),
-                     (2.0,Color(255,255,0)), (4.0,Color(255,0,0)),    (7.0, Color(0,0,0))         )
 
 
   /**

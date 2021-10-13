@@ -69,3 +69,11 @@ case class CellPoint(x: Double, y: Double)
   * @param blue Level of blue, 0 ≤ blue ≤ 255
   */
 case class Color(red: Int, green: Int, blue: Int)
+
+object Colors {
+  val deviations   = List( (-7.0,Color(0, 0, 255)), (-2.0,Color(0, 255, 255)), (0.0,Color(255, 255, 255)),
+                           (2.0,Color(255,255,0)), (4.0,Color(255,0,0)), (7.0, Color(0,0,0)) )
+  val temperatures = List( (-60d,Color(0, 0, 0)), (-50d,Color(33, 0, 107)), (-27d,Color(255, 0, 255)),
+                           (-15d,Color(0, 0, 255)), (0d,Color(0,255,255)),
+                           (12d, Color(255,255,0)), (32d,Color(255,0,0)), (60d,Color(255,255,255)) )
+}

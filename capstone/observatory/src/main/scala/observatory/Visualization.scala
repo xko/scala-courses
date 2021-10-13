@@ -9,9 +9,6 @@ import scala.collection.parallel.ParIterable
   */
 object Visualization extends VisualizationInterface {
 
-  val Colors = List( (-60d,Color(0,0,0)), (-50d,Color(33,0,107)), (-27d,Color(255,0,255)), (-15d,Color(0,0,255)),
-                     (0d,Color(0,255,255)), (12d, Color(255,255,0)), (32d,Color(255,0,0)), (60d,Color(255,255,255)))
-
   val BigR = 6371.0088
   val P = 4
 

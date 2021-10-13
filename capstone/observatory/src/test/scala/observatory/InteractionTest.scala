@@ -1,9 +1,5 @@
 package observatory
 
-import Visualization._
-import Interaction._
-import com.sksamuel.scrimage.RGBColor
-import com.sksamuel.scrimage.nio.ImageWriter
 import org.scalatest.funspec.AnyFunSpec
 import org.scalatest.matchers.should.Matchers
 import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
@@ -51,7 +47,7 @@ class InteractionTest extends AnyFunSpec with Matchers with ScalaCheckPropertyCh
     import Interaction.tile
 
     def img(year: Year, refs: Iterable[(Location, Temperature)])(t: Tile) = {
-      val image = tile(refs, Visualization.Colors, t)
+      val image = tile(refs, Colors.temperatures, t)
       val path = Paths.get(s"target/temperatures/$year/${t.zoom}/${t.x}-${t.y}.png")
       Files.createDirectories(path.getParent)
       image.output(path)(ImageWriter.default)
