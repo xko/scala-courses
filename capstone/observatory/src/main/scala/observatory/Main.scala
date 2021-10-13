@@ -3,17 +3,32 @@ package observatory
 import com.sksamuel.scrimage.Image
 import com.sksamuel.scrimage.nio.ImageWriter
 import observatory.Extraction.{locateTemperatures, locationYearlyAverageRecords}
-import observatory.Interaction.tile
 
 import java.nio.file.{Files, Paths}
+import scala.io.Source
 
 object Main extends App {
 
 //  writeTemperatures(args(0).toInt)
+//  writeNorms
+   writeDeviations(args(0).toInt)
 
-  writeNorms
+  def writeDeviations(ye: Year): Unit = {
+    println(s"Visualizing deviations $ye")
+    val norms = Source.fromFile("src/main/resources/norms.txt")
+    try {
+      val normals = norms.getLines().map(_.toDouble).toArray
+      val dev = Manipulation.deviation(temperatures(ye), gl=> normals(gl.i))
+      def write = writeTile( t=> s"target/deviations/$ye/${t.zoom}/${t.x}-${t.y}.png",
+                             t=> Visualization2.visualizeGrid(dev,Visualization2.Colors,t) ) _
+      write(Tile.World)
+      Tile.World.zoomIn(1).foreach(write)
+      Tile.World.zoomIn(2).foreach(write)
+      Tile.World.zoomIn(3).foreach(write)
+    } finally norms.close()
+  }
 
-  def writeNorms = {
+  def writeNorms(): Unit = {
     println(s"Computing norms")
     val path = Paths.get(s"src/main/resources/norms.txt")
     Files.createDirectories(path.getParent)
@@ -25,7 +40,7 @@ object Main extends App {
   def writeTemperatures(ye: Year): Unit = {
     val refs: Iterable[(Location, Temperature)] = temperatures(ye)
     val write = writeTile( t=> s"target/temperatures/$ye/${t.zoom}/${t.x}-${t.y}.png",
-                           t=> tile(refs,Visualization.Colors, t) ) _
+                           t=> Interaction.tile(refs,Visualization.Colors, t) ) _
     write(Tile.World)
     Tile.World.zoomIn(1).foreach(write)
     Tile.World.zoomIn(2).foreach(write)
