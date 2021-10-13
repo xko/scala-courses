@@ -9,9 +9,9 @@ import java.nio.file.{Files, Paths}
 
 object Main extends App {
 
-//  writeTemperatures(args(0).toInt)
+  writeTemperatures(args(0).toInt)
 
-  writeNorms
+//  writeNorms
 
   def writeNorms = {
     println(s"Computing norms")
