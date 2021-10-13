@@ -11,6 +11,8 @@ scalacOptions ++= Seq(
   "-Xlint",
 )
 
+javaOptions += "-Xmx2G"
+
 libraryDependencies ++= Seq(
   "com.sksamuel.scrimage" %% "scrimage-core" % "2.1.8", // for visualization
   // You don’t *have to* use Spark, but in case you want to, we have added the dependency
