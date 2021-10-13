@@ -33,6 +33,10 @@ case class Tile(x: Int, y: Int, zoom: Int){
 
 }
 
+object Tile {
+  val World: Tile = Tile(0, 0, 0)
+}
+
 /**
   * Introduced in Week 4. Represents a point on a grid composed of
   * circles of latitudes and lines of longitude.
