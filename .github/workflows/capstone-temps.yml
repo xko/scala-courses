@@ -17,12 +17,12 @@ jobs:
       with:
         java-version: '11'
         distribution: 'adopt'
-    - name: Generate ${{ github.event.inputs.year }} images
+    - name: Generate ${{ github.event.inputs.year }} 
       working-directory: capstone/observatory
       run: sbt "run ${{ github.event.inputs.year }}"
     - name: Publish ${{ github.event.inputs.year }}
       uses: actions/upload-artifact@v2
       with:
-        name: tiles-${{ github.event.inputs.year }}
-        path: capstone/observatory/target/temperatures
+        name: ${{ github.event.inputs.year }}
+        path: capstone/observatory/target
       
