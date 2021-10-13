@@ -15,7 +15,7 @@ object Main extends App {
 
   def writeNorms = {
     println(s"Computing norms")
-    val path = Paths.get(s"target/norms.txt")
+    val path = Paths.get(s"src/main/resources/norms.txt")
     Files.createDirectories(path.getParent)
     val norms  = Manipulation.average((1975 to 1990).toStream.map(temperatures))
     import collection.JavaConverters._
