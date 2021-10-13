@@ -9,8 +9,18 @@ import java.nio.file.{Files, Paths}
 
 object Main extends App {
 
-  writeTemperatures(args(0).toInt)
+//  writeTemperatures(args(0).toInt)
 
+  writeNorms
+
+  def writeNorms = {
+    println(s"Computing norms")
+    val path = Paths.get(s"target/norms.txt")
+    Files.createDirectories(path.getParent)
+    val norms  = Manipulation.average((1975 to 1990).toStream.map(temperatures))
+    import collection.JavaConverters._
+    Files.write(path, Manipulation.gridLocations.map(norms(_).toString).seq.asJava )
+  }
 
   def writeTemperatures(ye: Year): Unit = {
     val refs: Iterable[(Location, Temperature)] = temperatures(ye)

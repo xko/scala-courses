@@ -11,6 +11,8 @@ import scala.collection.parallel.mutable.ParArray
 object Manipulation extends ManipulationInterface {
   private lazy val grid = (for (lat <- -89 to 90; lon <- -180 to 179) yield GridLocation(lat, lon)).toParArray
 
+  def gridLocations:Iterable[GridLocation] = grid.seq
+
 
   /**
     * @param temperatures Known temperatures
