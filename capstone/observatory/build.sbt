@@ -11,7 +11,7 @@ scalacOptions ++= Seq(
   "-Xlint",
 )
 
-javaOptions += "-Xmx2G"
+javaOptions += "-Xmx7G"
 
 libraryDependencies ++= Seq(
   "com.sksamuel.scrimage" %% "scrimage-core" % "2.1.8", // for visualization
