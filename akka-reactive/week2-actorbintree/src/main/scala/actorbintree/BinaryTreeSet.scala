@@ -13,6 +13,9 @@ object BinaryTreeSet:
     def id: Int
     def elem: Int
 
+  object Operation:
+    def unapply(op: Operation): Option[Int] = Some(op.elem)
+
   trait OperationReply:
     def id: Int
 
@@ -63,14 +66,28 @@ class BinaryTreeSet extends Actor:
 
   // optional
   /** Accepts `Operation` and `GC` messages. */
-  val normal: Receive = { case _ => ??? }
+  val normal: Receive = {
+    case op: Operation => root ! op
+    case GC =>
+      val newRoot = createRoot
+      root ! CopyTo (newRoot)
+      context.become(garbageCollecting(newRoot))
+  }
 
   // optional
   /** Handles messages while garbage collection is performed.
     * `newRoot` is the root of the new binary tree where we want to copy
     * all non-removed elements into.
     */
-  def garbageCollecting(newRoot: ActorRef): Receive = ???
+  def garbageCollecting(newRoot: ActorRef): Receive = {
+    case op:Operation => pendingQueue = pendingQueue.appended(op)
+    case CopyFinished =>
+      root = newRoot
+      pendingQueue.foreach(root ! _)
+      pendingQueue = Queue.empty[Operation]
+      context.become(normal)
+    case GC => ()
+  }
 
 
 object BinaryTreeNode:
@@ -87,26 +104,57 @@ object BinaryTreeNode:
    */
   case object CopyFinished
 
-  def props(elem: Int, initiallyRemoved: Boolean) = Props(classOf[BinaryTreeNode],  elem, initiallyRemoved)
+  def props(elem: Int, initiallyRemoved: Boolean): Props = Props(classOf[BinaryTreeNode], elem, initiallyRemoved)
 
-class BinaryTreeNode(val elem: Int, initiallyRemoved: Boolean) extends Actor:
+class BinaryTreeNode(val elem: Int, initiallyRemoved: Boolean) extends Actor with ActorLogging:
   import BinaryTreeNode.*
   import BinaryTreeSet.*
 
   var subtrees = Map[Position, ActorRef]()
   var removed = initiallyRemoved
 
+  private def newLeaf(el: Int) =
+    context.actorOf(BinaryTreeNode.props(el, initiallyRemoved = true),s"$el")
+
+  private def subtree(el:Int) =
+    require(el!=elem)
+    val side = if el > elem then Right else Left
+    subtrees = subtrees.updatedWith(side){
+      case None => Some(newLeaf(el))
+      case some => some
+    }
+    subtrees(side)
+
   // optional
   def receive = normal
 
   // optional
   /** Handles `Operation` messages and `CopyTo` requests. */
-  val normal: Receive = { case _ => ??? }
+  val normal: Receive =  {
+    case Contains(rr,id,el) if el == elem => rr ! ContainsResult(id,!removed)
+    case Insert(rr,id,el) if el == elem =>   removed = false
+                                             rr ! OperationFinished(id)
+    case Remove(rr,id,el) if el == elem =>   removed = true
+                                             rr ! OperationFinished(id)
+    case op @ Operation(el) =>               subtree(el) ! op
+
+    case CopyTo(target) =>
+      subtrees.values.foreach(_ ! CopyTo(target) )
+      if !removed then target ! Insert(self, self.hashCode, elem)
+      doCopy(subtrees.values.toSet, insertConfirmed = removed)
+  }
 
   // optional
   /** `expected` is the set of ActorRefs whose replies we are waiting for,
     * `insertConfirmed` tracks whether the copy of this node to the new tree has been confirmed.
     */
-  def copying(expected: Set[ActorRef], insertConfirmed: Boolean): Receive = ???
+  def copying(expected: Set[ActorRef], insertConfirmed: Boolean): Receive = {
+    case OperationFinished(_) => doCopy(expected, insertConfirmed = true)
+    case CopyFinished =>         doCopy(expected.excl(sender), insertConfirmed)
+  }
 
-
+  def doCopy(expected: Set[ActorRef], insertConfirmed: Boolean): Unit =
+    if expected.isEmpty && insertConfirmed then
+      context.parent ! CopyFinished
+      context.stop(self)
+    else context.become(copying(expected,insertConfirmed))
