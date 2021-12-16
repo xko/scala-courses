@@ -76,11 +76,9 @@ trait EncoderInstances:
     Encoder.fromFunction(n => Json.Num(BigDecimal(n)))
 
   /** An encoder for `String` values */
-  given Encoder[String] =
-    ??? // TODO Implement the `Encoder[String]` instance
+  given Encoder[String] = Encoder.fromFunction(Json.Str.apply)
 
-  /** An encoder for `Boolean` values */
-  // TODO Define a given value of type `Encoder[Boolean]`
+  given Encoder[Boolean] = Encoder.fromFunction(Json.Bool.apply)
 
   /**
     * Encodes a list of values of type `A` into a JSON array containing
@@ -174,14 +172,14 @@ trait DecoderInstances:
   given Decoder[Unit] =
     Decoder.fromPartialFunction { case Json.Null => () }
 
-  /** A decoder for `Int` values. Hint: use the `isValidInt` method of `BigDecimal`. */
-  // TODO Define a given value of type `Decoder[Int]`
+  given Decoder[Int] =
+    Decoder.fromPartialFunction { case Json.Num(v) if v.isValidInt => v.toIntExact }
 
-  /** A decoder for `String` values */
-  // TODO Define a given value of type `Decoder[String]`
+  given Decoder[String] =
+    Decoder.fromPartialFunction { case Json.Str(v) => v }
 
-  /** A decoder for `Boolean` values */
-  // TODO Define a given value of type `Decoder[Boolean]`
+  given Decoder[Boolean] =
+    Decoder.fromPartialFunction { case Json.Bool(v) => v}
 
   /**
     * A decoder for JSON arrays. It decodes each item of the array
@@ -190,7 +188,10 @@ trait DecoderInstances:
     */
   given [A] (using decoder: Decoder[A]): Decoder[List[A]] = 
     Decoder.fromFunction {
-      ???
+      case Json.Arr(items) =>
+        val decoded = items.flatMap(decoder.decode)
+        if(decoded.size == items.size) Some(decoded) else None
+      case _ => None
     }
 
   /**
@@ -198,7 +199,10 @@ trait DecoderInstances:
     * the supplied `name` using the given `decoder`.
     */
   def field[A](name: String)(using decoder: Decoder[A]): Decoder[A] =
-    ???
+    Decoder.fromFunction {
+      case Json.Obj(m) => m.get(name).flatMap(decoder.decode)
+      case _ => None
+    }
 
 
 case class Person(name: String, age: Int)
@@ -215,7 +219,8 @@ trait PersonCodecs:
 
   /** The corresponding decoder for `Person` */
   given Decoder[Person] =
-    ???
+   import Decoder.*
+   field[String]("name").zip(field[Int]("age")).transform( Person.apply.tupled )
 
 
 case class Contacts(people: List[Person])
@@ -224,12 +229,12 @@ object Contacts extends ContactsCodecs
 
 trait ContactsCodecs:
 
-  // TODO Define the encoder and the decoder for `Contacts`
-  // The JSON representation of a value of type `Contacts` should be
-  // a JSON object with a single field named “people” containing an
-  // array of values of type `Person` (reuse the `Person` codecs)
-  ()
+  given Encoder[Contacts] = new Encoder[Contacts]:
+    override def encode(value: Contacts) =
+      ObjectEncoder.field[List[Person]]("people").encode(value.people)
 
+  given Decoder[Contacts] =
+    Decoder.field[List[Person]]("people").transform(Contacts.apply)
 
 // In case you want to try your code, here is a simple `Main`
 // that can be used as a starting point. Otherwise, you can use
@@ -250,4 +255,3 @@ object Main:
     // println(maybeJsonObj.flatMap(_.decodeAs[Person]))
     // println(maybeJsonObj2.flatMap(_.decodeAs[Person]))
     // println(renderJson(Person("Bob", 66)))
-
