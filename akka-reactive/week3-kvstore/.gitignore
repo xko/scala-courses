@@ -13,3 +13,5 @@ logs/
 .vscode
 *.csv
 *.dat
+src/test/resources/application.conf
+
