@@ -2,7 +2,7 @@ package protocols
 
 import org.scalacheck.{Prop, Test}
 
-class ProtocolsSuite extends munit.FunSuite /*with SelectiveReceiveSpec */with TransactorSpec
+class ProtocolsSuite extends munit.FunSuite with SelectiveReceiveSpec with TransactorSpec
 
 object Util:
   // Convenient method that turns a scalacheck Prop into a JUnit assertion
