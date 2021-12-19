@@ -27,27 +27,59 @@ class Replica(val arbiter: ActorRef, persistenceProps: Props) extends Actor:
   import Persistence.*
   import context.dispatcher
 
-  /*
-   * The contents of this actor is just a suggestion, you can implement it in any way you like.
-   */
-  
   var kv = Map.empty[String, String]
   // a map from secondary replicas to replicators
   var secondaries = Map.empty[ActorRef, ActorRef]
   // the current set of replicators
   var replicators = Set.empty[ActorRef]
 
+  arbiter ! Join
 
   def receive =
     case JoinedPrimary   => context.become(leader)
-    case JoinedSecondary => context.become(replica)
+    case JoinedSecondary => context.become(replica(0))
 
-  /* TODO Behavior for  the leader role. */
-  val leader: Receive =
-    case _ =>
+  val persistence: ActorRef = context.system.actorOf(persistenceProps)
 
-  /* TODO Behavior for the replica role. */
-  val replica: Receive =
-    case _ =>
+  def upd(k: String, v: Option[String]) = v match {
+    case Some(v) => kv = kv + (k -> v)
+    case None => kv = kv - k
+  }
 
+  def leaderUpd(k: String, v: Option[String], id: Long) = {
+    upd(k,v)
+    val timer = context.actorOf(TimedCounter.props( replicators.size+1, sender,
+                                                    OperationAck(id), OperationFailed(id) ))
+    context.actorOf(Repeater( persistence, Persist(k,v,id),
+                              timer, TimedCounter.AckNow  ))
+    replicators.foreach( _.tell(Replicate(k,v,id),timer) )
+  }
 
+  val leader: Receive = {
+    case Get(k, id) => sender ! GetResult(k, kv.get(k), id)
+    case Insert(k, v, id) => leaderUpd(k,Some(v),id)
+    case Remove(k, id) => leaderUpd(k,None,id)
+    case Replicas(replicas) =>
+      secondaries = ( for {
+        replica <- replicas - self
+        replicator = secondaries.getOrElse(replica, context.actorOf(Replicator.props(replica)) )
+      } yield replica->replicator ).toMap
+      val newRs = secondaries.values.toSet
+      (replicators -- newRs).foreach(_ ! Release)
+      for(r <- newRs -- replicators; (k,v)<-kv ) r ! Replicate(k,Some(v),-1)
+      replicators = newRs
+  }
+
+  def replica(curSeq: Long): Receive = {
+    case Get(k, id) =>
+      sender ! GetResult(k, kv.get(k), id)
+    case Snapshot(k, _, seq) if seq < curSeq =>
+      sender ! SnapshotAck(k, seq)
+    case Snapshot(k, v, seq) if seq == curSeq =>
+      upd(k,v)
+      context.actorOf(Repeater( persistence, Persist(k,v,curSeq),
+                                      sender, SnapshotAck(k,curSeq) ))
+    case Persisted(_,seq) if seq == curSeq =>
+      context.become(replica(curSeq+1))
+
+  }
